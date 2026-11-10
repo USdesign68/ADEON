@@ -243,13 +243,16 @@ private fun SplashCleanerApp() {
     }
 }
 
-private fun diagnosticLabel(result: String): String = when {
-    result.startsWith("collected_only") -> "窗口采集完成（非广告识别）"
-    result == "opaque_skipped" -> "窗口疑似自绘/不透明，已跳过"
-    result == "no_active_window" -> "当前没有可采集窗口"
-    result == "package_mismatch" -> "窗口应用包名不一致，已跳过"
-    result == "collection_error" -> "采集过程异常"
-    else -> "其他诊断事件"
+private fun diagnosticLabel(result: String): String = when (result) {
+    "rule_matched" -> "规则命中（仅诊断，不执行动作）"
+    "no_match" -> "窗口已采集 · 未命中规则"
+    "no_rules" -> "窗口已采集 · 尚无可用规则"
+    "rules_unavailable" -> "规则包不可用"
+    "opaque_skipped" -> "窗口疑似自绘/不透明，已跳过"
+    "no_active_window" -> "当前没有可采集窗口"
+    "package_mismatch" -> "窗口应用包名不一致，已跳过"
+    "collection_error" -> "采集过程异常"
+    else -> if (result.startsWith("collected_only")) "窗口采集完成（非广告识别）" else "其他诊断事件"
 }
 
 @Composable private fun InspectionScreen(selected: String, onSelect: (String) -> Unit, statuses: Map<String, CheckStatus>, onStatus: (String, CheckStatus) -> Unit) {

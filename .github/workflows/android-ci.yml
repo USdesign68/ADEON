@@ -33,13 +33,11 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-          cache: gradle
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4.0.4
-
-      - name: Accept Android SDK licenses
-        run: yes | sdkmanager --licenses > /dev/null
+        with:
+          accept-android-sdk-licenses: true
 
       - name: Install Android 16 SDK
         run: sdkmanager --install "platforms;android-36" "build-tools;36.0.0" "platform-tools"
@@ -48,6 +46,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v6.4.1
         with:
           gradle-version: "8.11.1"
+          cache-provider: basic
 
       - name: Run unit tests
         run: gradle --no-daemon --stacktrace :app:testDebugUnitTest

@@ -4,4 +4,4 @@
     android:notificationTimeout="100"
     android:canRetrieveWindowContent="true"
     android:canPerformGestures="false"
-    android:description="仅在你逐个授权的应用内识别广告窗口与关闭控件；屏幕内容仅在本机内存中短暂处理，不上传。" />
+    android:description="Ad windows and close controls are identified only within apps that you authorize one by one; screen content is processed temporarily in local memory only and not uploaded." />

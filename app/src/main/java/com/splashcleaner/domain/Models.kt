@@ -32,7 +32,8 @@ data class WindowSnapshot(
     val capturedAtMs: Long,
     val nodes: List<NodeSnapshot>,
     val opaque: Boolean,
-    val elapsedSinceServiceStartMs: Long
+    /** Elapsed time since this target app entered the foreground, not since the service connected. */
+    val elapsedSinceAppLaunchMs: Long
 )
 
 data class RuleSelector(

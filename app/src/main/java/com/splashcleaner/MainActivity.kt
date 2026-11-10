@@ -76,7 +76,7 @@ private fun SplashCleanerApp() {
         NavigationBar(containerColor = Panel) {
             listOf("首页", "应用", "体检", "诊断", "设置").forEachIndexed { index, label ->
                 NavigationBarItem(selected = page == index, onClick = { page = index }, icon = {
-                    Icon(when (index) { 0 -> Icons.Default.Home; 1 -> Icons.Default.Apps; 2 -> Icons.Default.FactCheck; 3 -> Icons.Default.Terminal; else -> Icons.Default.Settings }, contentDescription = label)
+                    Icon(when (index) { 0 -> Icons.Default.Home; 1 -> Icons.Default.Apps; 2 -> Icons.Default.FactCheck; 3 -> Icons.Default.BugReport; else -> Icons.Default.Settings }, contentDescription = label)
                 }, label = { Text(label) })
             }
         }

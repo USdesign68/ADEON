@@ -1,12 +1,10 @@
 package com.splashcleaner
 
-import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.os.Bundle
 import android.provider.Settings
-import android.text.TextUtils
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -25,18 +23,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.lifecycleScope
 import com.splashcleaner.data.AppConfigEntity
+import com.splashcleaner.data.HitEntity
 import com.splashcleaner.data.LocalDatabase
 import com.splashcleaner.data.HitEntity
 import com.splashcleaner.domain.AccessState
+import com.splashcleaner.domain.CheckStatus
 import com.splashcleaner.domain.InspectionCatalog
 import com.splashcleaner.domain.InspectionScore
-import com.splashcleaner.domain.CheckStatus
 import com.splashcleaner.domain.Severity
 import com.splashcleaner.service.AdAccessibilityService
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 private val Paper = Color(0xFFEDEEE9)
 private val Panel = Color(0xFFF6F7F3)
@@ -55,10 +57,12 @@ class MainActivity : ComponentActivity() {
 private fun SplashCleanerApp() {
     val context = LocalContext.current
     val db = remember { LocalDatabase.get(context) }
+    val scope = rememberCoroutineScope()
     var page by remember { mutableStateOf(0) }
     var accessState by remember { mutableStateOf(readAccessState(context)) }
     var apps by remember { mutableStateOf(emptyList<ApplicationInfo>()) }
     var configs by remember { mutableStateOf(emptyMap<String, AppConfigEntity>()) }
+    var diagnostics by remember { mutableStateOf(emptyList<HitEntity>()) }
     var selectedCheck by remember { mutableStateOf(InspectionCatalog.checks.first().id) }
     var statuses by remember { mutableStateOf(InspectionCatalog.checks.associate { it.id to CheckStatus.NOT_VERIFIED }) }
     var diagnosticHits by remember { mutableStateOf(emptyList<HitEntity>()) }
@@ -69,6 +73,9 @@ private fun SplashCleanerApp() {
             .sortedBy { context.packageManager.getApplicationLabel(it).toString().lowercase() }
         db.appConfigDao().observeAll().collect { list -> configs = list.associateBy { it.packageName } }
     }
+    LaunchedEffect(Unit) {
+        db.hitDao().observeDiagnostics().collect { diagnostics = it }
+    }
     LaunchedEffect(page) { accessState = readAccessState(context) }
     LaunchedEffect(Unit) { db.hitDao().recent().collect { diagnosticHits = it } }
 
@@ -76,6 +83,13 @@ private fun SplashCleanerApp() {
         NavigationBar(containerColor = Panel) {
             listOf("首页", "应用", "体检", "诊断", "设置").forEachIndexed { index, label ->
                 NavigationBarItem(selected = page == index, onClick = { page = index }, icon = {
+                    Icon(when (index) {
+                        0 -> Icons.Default.Home
+                        1 -> Icons.Default.Apps
+                        2 -> Icons.Default.FactCheck
+                        3 -> Icons.Default.BugReport
+                        else -> Icons.Default.Settings
+                    }, contentDescription = label)
                     Icon(when (index) { 0 -> Icons.Default.Home; 1 -> Icons.Default.Apps; 2 -> Icons.Default.FactCheck; 3 -> Icons.Default.BugReport; else -> Icons.Default.Settings }, contentDescription = label)
                 }, label = { Text(label) })
             }
@@ -83,13 +97,24 @@ private fun SplashCleanerApp() {
     }) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (page) {
-                0 -> HomeScreen(accessState, onEnable = { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }, onApps = { page = 1 }, onInspect = { page = 2 })
+                0 -> HomeScreen(
+                    accessState,
+                    onEnable = { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
+                    onApps = { page = 1 },
+                    onInspect = { page = 2 },
+                    onDiagnostics = { page = 3 }
+                )
                 1 -> AppsScreen(apps, configs, onToggle = { app, enabled ->
                     val pkg = app.packageName
                     context.getSharedPreferences("app_cfg", android.content.Context.MODE_PRIVATE).edit().putBoolean(pkg, enabled).apply()
-                    lifecycleScopeLaunch(context) { db.appConfigDao().upsert(AppConfigEntity(pkg, enabled, System.currentTimeMillis(), if (enabled) System.currentTimeMillis() else configs[pkg]?.userApprovedAt)) }
+                    scope.launch(Dispatchers.IO) {
+                        db.appConfigDao().upsert(AppConfigEntity(pkg, enabled, System.currentTimeMillis(), if (enabled) System.currentTimeMillis() else configs[pkg]?.userApprovedAt))
+                    }
                 })
                 2 -> InspectionScreen(selectedCheck, { selectedCheck = it }, statuses, { id, status -> statuses = statuses + (id to status) })
+                3 -> DiagnosticsScreen(accessState, diagnostics, onClear = {
+                    scope.launch(Dispatchers.IO) { db.hitDao().clearDiagnostics() }
+                })
                 3 -> DiagnosticsScreen(diagnosticHits, onClear = { lifecycleScopeLaunch(context) { db.hitDao().clear() } })
                 else -> SettingsScreen(accessState, onEnable = { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) })
             }
@@ -97,7 +122,13 @@ private fun SplashCleanerApp() {
     }
 }
 
-@Composable private fun HomeScreen(state: AccessState, onEnable: () -> Unit, onApps: () -> Unit, onInspect: () -> Unit) {
+@Composable private fun HomeScreen(
+    state: AccessState,
+    onEnable: () -> Unit,
+    onApps: () -> Unit,
+    onInspect: () -> Unit,
+    onDiagnostics: () -> Unit
+) {
     LazyColumn(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item { Text("开屏净化助手", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Ink); Text("本地广告识别与误触防护", color = Muted) }
         item {
@@ -116,8 +147,9 @@ private fun SplashCleanerApp() {
         } }
         item { ActionCard("逐应用授权", "新应用默认关闭；只处理你明确允许的应用。", Icons.Default.Apps, onApps) }
         item { ActionCard("广告体检", "23 项检测；无法自动验证的项目明确标记为未验证。", Icons.Default.FactCheck, onInspect) }
+        item { ActionCard("识别诊断", "查看窗口采集状态、耗时、节点数量和跳过原因。", Icons.Default.BugReport, onDiagnostics) }
         item { Text("安全说明", fontWeight = FontWeight.SemiBold, color = Ink) }
-        item { Text("当前版本为开发基座：尚未启用自动点击，也未内置第三方 App 规则。所有屏幕文字仅短暂存在于内存，不写入数据库或日志。", color = Muted) }
+        item { Text("当前版本尚未启用自动点击，也未内置第三方 App 规则。屏幕文字仅在本机内存中短暂处理，不写入数据库或日志。", color = Muted) }
     }
 }
 
@@ -155,6 +187,73 @@ private fun SplashCleanerApp() {
             confirmButton = { TextButton(onClick = { onToggle(app, true); pending = null }) { Text("允许") } },
             dismissButton = { TextButton(onClick = { pending = null }) { Text("取消") } })
     }
+}
+
+@Composable private fun DiagnosticsScreen(state: AccessState, rows: List<HitEntity>, onClear: () -> Unit) {
+    var confirmClear by remember { mutableStateOf(false) }
+    LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        item { Text("识别诊断", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Ink) }
+        item {
+            Card(colors = CardDefaults.cardColors(containerColor = Panel)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("无障碍服务：${state.label()}", fontWeight = FontWeight.SemiBold, color = if (state == AccessState.AVAILABLE) Accent else Ink)
+                    Text("当前仅记录窗口树采集诊断，不执行广告规则匹配或自动点击。", color = Muted, style = MaterialTheme.typography.bodySmall)
+                    Text("只保存匿名应用标识、采集结果、节点数量、耗时和时间；不保存屏幕文字、控件描述或截图。", color = Muted, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+        item {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("最近记录（最多 100 条）", fontWeight = FontWeight.SemiBold, color = Ink, modifier = Modifier.weight(1f))
+                TextButton(onClick = { confirmClear = true }, enabled = rows.isNotEmpty()) { Text("清空") }
+            }
+        }
+        if (rows.isEmpty()) {
+            item {
+                Card(colors = CardDefaults.cardColors(containerColor = Panel)) {
+                    Column(Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(Icons.Default.Search, null, tint = Muted, modifier = Modifier.size(32.dp))
+                        Text("暂无采集记录", fontWeight = FontWeight.SemiBold, color = Ink)
+                        Text("请先在「应用」页明确授权一个普通测试应用，然后打开该应用并切换几个页面。", color = Muted, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
+        items(rows, key = { it.id }) { row ->
+            val time = remember(row.id) { SimpleDateFormat("MM-dd HH:mm:ss", Locale.getDefault()).format(Date(row.occurredAt)) }
+            val nodeCount = row.result.substringAfter("nodes=", "").toIntOrNull()
+            Card(colors = CardDefaults.cardColors(containerColor = Panel)) {
+                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(diagnosticLabel(row.result), fontWeight = FontWeight.SemiBold, color = Ink, modifier = Modifier.weight(1f))
+                        Text(time, color = Muted, style = MaterialTheme.typography.labelSmall)
+                    }
+                    Text("应用匿名标识：${row.packageHash.take(8)}", color = Muted, style = MaterialTheme.typography.bodySmall)
+                    if (nodeCount != null) Text("采集节点：$nodeCount", color = Muted, style = MaterialTheme.typography.bodySmall)
+                    if (row.costMs > 0L) Text("采集耗时：${row.costMs} ms", color = Muted, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+        item { Text("说明：出现「窗口采集完成」只代表读取到可见节点，不代表检测到了广告。规则识别和 W0 真机验收仍未完成。", color = Muted, style = MaterialTheme.typography.bodySmall) }
+    }
+    if (confirmClear) {
+        AlertDialog(
+            onDismissRequest = { confirmClear = false },
+            title = { Text("清空诊断记录？") },
+            text = { Text("只会删除本机保存的诊断元数据，不影响应用授权和服务设置。") },
+            confirmButton = { TextButton(onClick = { onClear(); confirmClear = false }) { Text("清空") } },
+            dismissButton = { TextButton(onClick = { confirmClear = false }) { Text("取消") } }
+        )
+    }
+}
+
+private fun diagnosticLabel(result: String): String = when {
+    result.startsWith("collected_only") -> "窗口采集完成（非广告识别）"
+    result == "opaque_skipped" -> "窗口疑似自绘/不透明，已跳过"
+    result == "no_active_window" -> "当前没有可采集窗口"
+    result == "package_mismatch" -> "窗口应用包名不一致，已跳过"
+    result == "collection_error" -> "采集过程异常"
+    else -> "其他诊断事件"
 }
 
 @Composable private fun InspectionScreen(selected: String, onSelect: (String) -> Unit, statuses: Map<String, CheckStatus>, onStatus: (String, CheckStatus) -> Unit) {
@@ -253,7 +352,4 @@ private fun readAccessState(context: android.content.Context): AccessState {
     val enabled = Settings.Secure.getString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES).orEmpty()
     val isEnabled = enabled.split(':').any { it.equals(expected, ignoreCase = true) }
     return when { !isEnabled -> AccessState.NOT_ENABLED; AdAccessibilityService.connected -> AccessState.AVAILABLE; else -> AccessState.RECYCLED }
-}
-private fun lifecycleScopeLaunch(context: android.content.Context, block: suspend () -> Unit) {
-    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch { block() }
 }

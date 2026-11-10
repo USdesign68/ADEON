@@ -2,6 +2,7 @@ package com.splashcleaner.service
 
 import android.accessibilityservice.AccessibilityService
 import android.view.accessibility.AccessibilityEvent
+import com.splashcleaner.data.HitEntity
 import com.splashcleaner.data.LocalDatabase
 import com.splashcleaner.domain.SafetyGate
 import kotlinx.coroutines.CoroutineScope
@@ -10,10 +11,14 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import java.security.MessageDigest
 
-/** Collection-only baseline. Automatic actions remain disabled until a reviewed, signed rule set is installed. */
+/**
+ * Collection-only baseline. Diagnostics contain metadata only; window text and descriptions are
+ * transient in memory. Automatic actions and ad-rule recognition remain disconnected.
+ */
 class AdAccessibilityService : AccessibilityService() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val collector = WindowTreeCollector()
+    private val diagnosticThrottle = mutableMapOf<String, Long>()
     private var foregroundPackage: String? = null
     private var appLaunchStartedAt = 0L
 
@@ -35,44 +40,79 @@ class AdAccessibilityService : AccessibilityService() {
             event.eventType != AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) return
         val pkg = event.packageName?.toString() ?: return
 
-        // Start the rule clock when a different app enters the foreground. Service uptime is not
-        // a valid proxy: the accessibility service can remain connected for hours before launch.
-        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-            if (pkg != foregroundPackage) {
-                foregroundPackage = pkg
-                appLaunchStartedAt = System.currentTimeMillis()
-            }
-        } else if (foregroundPackage == null) {
+        // Keep the launch clock tied to the current foreground package, not service uptime.
+        if (pkg != foregroundPackage) {
             foregroundPackage = pkg
             appLaunchStartedAt = System.currentTimeMillis()
         }
         val launchStartedAt = appLaunchStartedAt.takeIf { it > 0L } ?: return
 
-        // Per-app opt-in is checked before reading the target window tree.
+        // Per-app opt-in and protected-package checks happen before reading the window tree.
         if (!getSharedPreferences("app_cfg", MODE_PRIVATE).getBoolean(pkg, false)) return
         if (SafetyGate.isProtectedPackage(pkg)) return
-        val root = rootInActiveWindow ?: return
+
+        val root = rootInActiveWindow
+        if (root == null) {
+            recordDiagnostic(pkg, "no_active_window")
+            return
+        }
+
         try {
-            if (root.packageName?.toString() != pkg) return
-            val metrics = resources.displayMetrics
-            val snapshot = collector.collect(root, pkg, event.className?.toString(), launchStartedAt,
-                metrics.widthPixels, metrics.heightPixels)
-            // Snapshot text is transient. Do not log, persist or transmit it.
-            if (snapshot.opaque) {
-                serviceScope.launch {
-                    runCatching {
-                        val hash = sha256(pkg)
-                        LocalDatabase.get(this@AdAccessibilityService).hitDao().insert(
-                            com.splashcleaner.data.HitEntity(packageHash = hash, ruleId = "_opaque", result = "skipped", costMs = 0, occurredAt = System.currentTimeMillis())
-                        )
-                    }
-                }
+            if (root.packageName?.toString() != pkg) {
+                recordDiagnostic(pkg, "package_mismatch")
+                return
             }
-            // Recognition and actions are intentionally not connected in this safety-baseline change.
+            val metrics = resources.displayMetrics
+            val startedAt = System.currentTimeMillis()
+            val snapshot = collector.collect(
+                root, pkg, event.className?.toString(), launchStartedAt,
+                metrics.widthPixels, metrics.heightPixels
+            )
+            val collectionCostMs = (System.currentTimeMillis() - startedAt).coerceAtLeast(0L)
+
+            // Persist metadata only. The result explicitly says collection-only, not ad recognition.
+            val result = if (snapshot.opaque) {
+                "opaque_skipped"
+            } else {
+                "collected_only;nodes=${snapshot.nodes.size}"
+            }
+            recordDiagnostic(pkg, result, collectionCostMs)
         } catch (_: Throwable) {
-            // Accessibility callbacks must never crash the service.
+            // Keep the accessibility callback resilient and avoid logging exception details.
+            recordDiagnostic(pkg, "collection_error")
         } finally {
             runCatching { root.recycle() }
+        }
+    }
+
+    private fun recordDiagnostic(packageName: String, result: String, costMs: Long = 0L) {
+        val now = System.currentTimeMillis()
+        val throttleKey = "$packageName|$result"
+        val shouldRecord = synchronized(diagnosticThrottle) {
+            val last = diagnosticThrottle[throttleKey] ?: 0L
+            if (now - last < DIAGNOSTIC_THROTTLE_MS) {
+                false
+            } else {
+                diagnosticThrottle[throttleKey] = now
+                true
+            }
+        }
+        if (!shouldRecord) return
+
+        serviceScope.launch {
+            runCatching {
+                val dao = LocalDatabase.get(this@AdAccessibilityService).hitDao()
+                dao.insert(
+                    HitEntity(
+                        packageHash = sha256(packageName),
+                        ruleId = DIAGNOSTIC_RULE_ID,
+                        result = result,
+                        costMs = costMs.coerceAtLeast(0L),
+                        occurredAt = now
+                    )
+                )
+                dao.trimDiagnostics()
+            }
         }
     }
 
@@ -83,7 +123,15 @@ class AdAccessibilityService : AccessibilityService() {
     }
 
     override fun onInterrupt() = Unit
-    private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256").digest(value.toByteArray()).take(12).joinToString("") { "%02x".format(it) }
 
-    companion object { @Volatile var connected: Boolean = false; private set }
+    private fun sha256(value: String): String =
+        MessageDigest.getInstance("SHA-256").digest(value.toByteArray())
+            .take(12).joinToString("") { "%02x".format(it) }
+
+    companion object {
+        private const val DIAGNOSTIC_RULE_ID = "_diagnostic"
+        private const val DIAGNOSTIC_THROTTLE_MS = 1_500L
+        @Volatile var connected: Boolean = false
+            private set
+    }
 }

@@ -67,7 +67,7 @@ class RuleEngine {
     fun candidates(rule: AdRule, snapshot: WindowSnapshot, density: Float): List<NodeSnapshot> {
         if (rule.state != RuleState.active) return emptyList()
         if (rule.packageName != "*" && rule.packageName != snapshot.packageName) return emptyList()
-        if (snapshot.elapsedSinceServiceStartMs > rule.elapsedMaxMs && rule.elapsedMaxMs > 0) return emptyList()
+        if (rule.elapsedMaxMs > 0 && snapshot.elapsedSinceAppLaunchMs > rule.elapsedMaxMs) return emptyList()
         if (rule.activities.isNotEmpty() && rule.activities.none { wildcard(it, snapshot.activityName.orEmpty()) }) return emptyList()
         return snapshot.nodes.filter { node ->
             node.visible && node.enabled &&

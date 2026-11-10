@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>广告体检 · 检测项与判定标准</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230F6A5F'/%3E%3Cpath d='M8 16l5 5 11-11' stroke='%23EDEEE9' stroke-width='3' fill='none'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Serif+SC:wght@500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap">
+<style>
+:root{
+  --paper:#EDEEE9;
+  --panel:#F6F7F3;
+  --ink:#171C21;
+  --ink2:#4E5763;
+  --ink3:#7A838F;
+  --line:#C5CBC1;
+  --line2:#DCE0D7;
+  --accent:#0F6A5F;
+  --accent-ink:#0A4D45;
+  --accent-soft:rgba(15,106,95,.09);
+  --warn:#9E3B22;
+  --warn-soft:rgba(158,59,34,.10);
+  --mono:ui-monospace,"Cascadia Mono","Cascadia Code",Consolas,"SF Mono",Menlo,monospace;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --serif:"Noto Serif SC","Songti SC","SimSun",serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--paper);color:var(--ink);
+  font-family:var(--sans);font-size:16px;line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1000px;margin:0 auto;padding:28px 20px 80px}
+
+.masthead{padding:12px 0 26px;border-bottom:1px solid var(--line)}
+.kicker{font-family:var(--mono);font-size:12px;color:var(--ink3);margin-bottom:18px}
+h1{font-family:var(--serif);font-weight:600;font-size:34px;line-height:1.28;letter-spacing:-.01em;margin-bottom:14px}
+.lede{font-size:16px;color:var(--ink2);max-width:36em;line-height:1.8}
+
+/* 口径三层 */
+.layers{margin-top:26px;border:1px solid var(--line);background:var(--panel)}
+.layer-row{
+  display:grid;grid-template-columns:26px 1fr;gap:12px;
+  padding:13px 14px;border-bottom:1px solid var(--line2);
+}
+.layer-row:last-child{border-bottom:0}
+.layer-row .ln{
+  font-family:var(--mono);font-size:11px;color:var(--accent);
+  border:1px solid var(--line);background:var(--accent-soft);
+  height:22px;display:flex;align-items:center;justify-content:center;margin-top:2px;
+}
+.layer-row b{display:block;font-size:14px;font-weight:500;margin-bottom:3px}
+.layer-row span{font-size:13px;color:var(--ink2);line-height:1.65}
+.layer-row span em{font-style:normal;color:var(--ink3);font-family:var(--mono);font-size:12px}
+
+/* 统计条 */
+.stats{
+  display:grid;grid-template-columns:1fr 1fr;gap:1px;
+  margin-top:22px;background:var(--line2);border:1px solid var(--line2);
+}
+.stats div{background:var(--panel);padding:11px 13px}
+.stats dt{font-family:var(--mono);font-size:11px;color:var(--ink3);margin-bottom:2px}
+.stats dd{font-size:14px;color:var(--ink)}
+
+section{margin-top:52px}
+.sec-head{
+  display:flex;align-items:baseline;justify-content:space-between;gap:16px;
+  border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:22px;
+}
+h2{font-family:var(--serif);font-weight:600;font-size:22px;line-height:1.4}
+.sec-head .src{font-family:var(--mono);font-size:11.5px;color:var(--ink3);white-space:nowrap}
+
+/* 条款原文 */
+.clause{
+  border-left:3px solid var(--accent);background:var(--panel);
+  padding:14px 16px;margin-bottom:18px;
+}
+.clause .ct{
+  font-family:var(--mono);font-size:11.5px;color:var(--accent);
+  margin-bottom:7px;
+}
+.clause p{
+  font-family:var(--serif);font-size:14.5px;line-height:1.85;color:var(--ink);
+}
+.clause .cn{
+  font-family:var(--sans);font-size:12.5px;color:var(--ink3);
+  margin-top:8px;line-height:1.7;
+}
+
+/* 检测项 */
+.items{border-top:1px solid var(--line2)}
+.item{
+  display:grid;grid-template-columns:58px 1fr;gap:12px;
+  padding:14px 0;border-bottom:1px solid var(--line2);
+}
+.iid{font-family:var(--mono);font-size:12px;color:var(--ink3);padding-top:2px}
+.ibody{min-width:0}
+.itop{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;margin-bottom:5px}
+.itop b{font-size:14.5px;font-weight:500}
+.sev{
+  font-family:var(--mono);font-size:10.5px;line-height:1;
+  padding:4px 6px;border:1px solid var(--line);
+  color:var(--ink2);background:var(--panel);white-space:nowrap;
+}
+.sev.s{color:#fff;background:var(--warn);border-color:var(--warn)}
+.sev.h{color:var(--warn);border-color:var(--warn);background:var(--panel)}
+.icrit{font-size:14px;color:var(--ink2);line-height:1.7}
+code{font-family:var(--mono);font-size:.92em;color:var(--accent-ink)}
+.icrit em{
+  font-style:normal;font-family:var(--mono);font-size:11.5px;
+  color:var(--accent-ink);background:var(--accent-soft);
+  padding:1px 4px;margin-right:5px;
+}
+.imeta{
+  margin-top:7px;font-family:var(--mono);font-size:11.5px;
+  color:var(--ink3);line-height:1.65;
+}
+.imeta i{font-style:normal;color:var(--accent);margin-right:4px}
+
+.callout{
+  border-left:2px solid var(--warn);background:var(--warn-soft);
+  padding:12px 15px;font-size:13.5px;color:var(--ink2);line-height:1.75;margin:20px 0 0;
+}
+.callout b{color:var(--warn);font-weight:500}
+
+.list{list-style:none;display:grid;gap:9px;margin-top:6px}
+.list li{font-size:14px;color:var(--ink2);padding-left:18px;position:relative;line-height:1.72}
+.list li::before{content:"";position:absolute;left:0;top:.68em;width:7px;height:1px;background:var(--accent)}
+.list li b{color:var(--ink);font-weight:500}
+
+/* 评分 */
+.score{
+  border:1px solid var(--line);background:var(--panel);padding:16px;
+  margin-top:6px;
+}
+.score pre{
+  font-family:var(--mono);font-size:12.5px;line-height:1.9;
+  color:var(--ink);overflow-x:auto;white-space:pre;
+}
+.grades{display:grid;grid-template-columns:1fr;gap:1px;margin-top:14px;background:var(--line2)}
+.grades div{background:var(--paper);padding:11px 13px;display:flex;gap:12px;align-items:baseline}
+.grades .gk{font-family:var(--mono);font-size:13px;color:var(--accent);min-width:20px}
+.grades .gv{font-size:13px;color:var(--ink2);line-height:1.65}
+.grades .gv b{color:var(--ink);font-weight:500}
+
+.footer{
+  margin-top:60px;padding-top:16px;border-top:1px solid var(--line);
+  display:flex;flex-wrap:wrap;gap:8px 26px;
+  font-family:var(--mono);font-size:11.5px;color:var(--ink3);
+}
+
+@media (max-width:639px){
+  .stats{grid-template-columns:1fr}
+  .imeta{font-size:12px}
+  .score pre{white-space:pre-wrap;word-break:break-word;font-size:11.5px;line-height:1.85}
+}
+@media (min-width:640px){
+  .wrap{padding:36px 32px 96px}
+  h1{font-size:44px}
+  .lede{font-size:17px}
+  .stats{grid-template-columns:repeat(3,1fr)}
+  .item{grid-template-columns:72px 1fr;gap:18px}
+  .grades{grid-template-columns:1fr 1fr}
+  .layer-row{grid-template-columns:30px 1fr;padding:15px 18px;gap:14px}
+}
+@media (min-width:900px){
+  h1{font-size:50px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <div class="kicker">广告体检 · 检测项与判定标准 · v1.0 · 2026-11-06</div>
+  <h1>广告体检：23 项检测与判定口径</h1>
+  <p class="lede">这是拿去实测的清单，不是普法文章。每条检测项都挂到具体条款上；法条只写“显著标明”“确保一键关闭”，没有数字，所以我把它们折算成可判定的量化口径，并逐条标明哪些是原文规定、哪些是我定的工程阈值。</p>
+
+  <div class="layers">
+    <div class="layer-row">
+      <div class="ln">L1</div>
+      <div><b>法律强制，违反即违法</b><span>《互联网广告管理办法》第九条（可识别性）、第十条（一键关闭）、第十一条（欺骗误导）；罚则见第二十六、二十七条，均为责令改正、拒不改正处 <em>5000–30000 元</em>。上位法《广告法》第四十四条第二款、第六十二条。</span></div>
+    </div>
+    <div class="layer-row">
+      <div class="ln">L2</div>
+      <div><b>标准参考，用于摇摆项的判定</b><span>TC260《网络安全标准实践指南——摇一摇广告触发行为安全要求》v1.0-202507 第 5 章 a–h 项；参数参照 <em>加速度 ≥ 15 m/s²、转动角度 ≥ 35°、操作时间 ≥ 3s</em>（原文为“可参照”，允许等效参数）。</span></div>
+    </div>
+    <div class="layer-row">
+      <div class="ln">L3</div>
+      <div><b>工程量化，非法定要求</b><span>尺寸、对比度、计时、热区面积等由我设定，来源是 WCAG 2.1 SC 1.4.11 非文本对比 <em>3:1</em>、Android 最小触控区 <em>44dp</em>、Apple HIG <em>44pt</em>。这类结论在报告里必须标成“工程口径”，否则举报时站不住。</span></div>
+    </div>
+  </div>
+
+  <dl class="stats">
+    <div><dt>检测项</dt><dd>23 项，分 5 组</dd></div>
+    <div><dt>严重 / 高 / 中</dt><dd>6 / 7 / 10</dd></div>
+    <div><dt>可自动化程度</dt><dd>自动 12 · 半自动 8 · 人工 3</dd></div>
+  </dl>
+</header>
+
+<!-- ============ A ============ -->
+<section id="a">
+  <div class="sec-head"><h2>A 组 · 广告可识别性</h2><span class="src">2 项</span></div>
+
+  <div class="clause">
+    <div class="ct">《互联网广告管理办法》第九条 · 罚则第二十五条（转致《广告法》第五十九条第三款）</div>
+    <p>互联网广告应当具有可识别性，能够使消费者辨明其为广告。<br>对于竞价排名的商品或者服务，广告发布者应当显著标明“广告”，与自然搜索结果明显区分。</p>
+    <div class="cn">这一条是整部办法里最“软”的一条：只有“可识别”三个字，没有尺寸、颜色、位置。所以下面两项必须拆开看——有没有标，和标了能不能看清。</div>
+  </div>
+
+  <div class="items">
+    <div class="item">
+      <div class="iid">A-01</div>
+      <div class="ibody">
+        <div class="itop"><b>广告标识是否存在</b><span class="sev">中</span></div>
+        <p class="icrit"><em>判定</em>开屏或插屏广告区域内，存在“广告”“赞助”“推广”“AD”等标识文字或角标，且自广告出现起持续可见 ≥ 1000ms。整屏只剩品牌 Logo 与产品画面的，判为缺失。</p>
+        <p class="imeta"><i>采集</i>半自动　OCR 识别 + 节点 text 比对，需人工排除误判<br><i>证据</i>首帧截图 + 节点树 + 时间戳</p>
+      </div>
+    </div>
+    <div class="item">
+      <div class="iid">A-02</div>
+      <div class="ibody">
+        <div class="itop"><b>标识是否真的看得清</b><span class="sev h">高</span></div>
+        <p class="icrit"><em>判定</em>标识文字高度 ≥ 10dp，且与相邻背景对比度 ≥ 3:1，且不被图片、圆角遮罩或系统状态栏覆盖。任一项不满足判为“形式标注”。</p>
+        <p class="imeta"><i>采集</i>半自动　截图像素采样算对比度 + OCR 字高估算<br><i>证据</i>放大截图 + 采样点坐标 + 对比度计算值</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ B ============ -->
+<section id="b">
+  <div class="sec-head"><h2>B 组 · 一键关闭</h2><span class="src">8 项</span></div>
+
+  <div class="clause">
+    <div class="ct">《互联网广告管理办法》第十条 · 罚则第二十六条</div>
+    <p>以弹出等形式发布互联网广告，广告主、广告发布者应当显著标明关闭标志，确保一键关闭，不得有下列情形：<br>（一）没有关闭标志或者计时结束才能关闭广告；<br>（二）关闭标志虚假、不可清晰辨识或者难以定位等，为关闭广告设置障碍；<br>（三）关闭广告须经两次以上点击；<br>（四）在浏览同一页面、同一文档过程中，关闭后继续弹出广告，影响用户正常使用网络；<br>（五）其他影响一键关闭的行为。<br>启动互联网应用程序时展示、发布的开屏广告适用前款规定。</p>
+    <div class="cn">第五条“其他影响一键关闭的行为”是兜底项，也是实际执法里最常被援引的一条——凡是下面七项没覆盖到、但确实让用户关不掉的做法，都归到这里。</div>
+  </div>
+
+  <div class="items">
+    <div class="item">
+      <div class="iid">B-01</div>
+      <div class="ibody">
+        <div class="itop"><b>关闭标志是否存在</b><span class="sev s">严重</span></div>
+        <p class="icrit"><em>判定</em>广告区域内存在可点击的关闭控件（“×”“关闭”“跳过”不计入“跳过广告”，只认关闭/退出）。找不到，或只能通过返回键退出，判为违反第十条（一）。</p>
+        <p class="imeta"><i>采集</i>自动　节点树遍历 + 点击类属性判定<br><i>证据</i>节点树全文 + 控件 bounds</p>
+      </div>
+    </div>
+    <div class="item">
+      <div class="iid">B-02</div>
+      <div class="ibody">
+        <div class="itop"><b>是否必须等倒计时结束</b><span class="sev s">严重</span></div>
+        <p class="icrit"><em>判定</em>广告首帧出现后，关闭控件 <code>enabled=false</code> 或透明度 &lt; 50% 持续超过 1000ms，之后才可点，判为违反第十条（一）“计时结束才能关闭”。</p>
+        <p class="imeta"><i>采集</i>自动　500ms 间隔采样控件状态序列<br><i>证据</i>状态时间序列 + 首帧与可点帧截图</p>
+      </div>
+    </div>
+    <div class="item">
+      <div class="iid">B-03</div>
+      <div class="ibody">
+        <div class="itop"><b>是否需要两次以上点击</b><span class="sev s">严重</span></div>
+        <p class="icrit"><em>判定</em>一次点击关闭控件后，广告消失且不出现任何新的确认层、挽留弹窗、“再想想”页面。出现任一，判为违反第十条（三）。</p>
+        <p class="imeta"><i>采集</i>自动　单次注入点击 + 1500ms 内窗口变化计数<br><i>证据</i>点击前后截图 + 窗口事件序列</p>
+      </div>
+    </div>
+    <div class="item">
+      <div class="iid">B-04</div>
+      <div class="ibody">
+        <div class="itop"><b>关闭标志是否真实</b><span class="sev s">严重</span></div>
+        <p class="icrit"><em>判定</em>点击后广告确实消失、停留在原应用、不跳转第三方页面、不打开应用商店。点击无响应或跳到落地页，判为违反第十条（二）“关闭标志虚假”。</p>
+        <p class="imeta"><i>采集</i>自动　点击后比对前台包名与 Activity<br><i>证据</i>点击前后前台包名 + 目标页面截图</p>
+      </div>
+    </div>
+    <div class="item">
+      <div class="iid">B-05</div>
+      <div class="ibody">
+        <div class="itop"><b>关闭标志是否够大、够得着</b><span class="sev h">高</span></div>
+        <p class="icrit"><em>判定</em>关闭图标可视区 ≥ 24×24dp，可点击热区 ≥ 44×44dp，距屏幕边缘 ≥ 8dp。低于此值判为“难以定位”（第十条（二）），工程口径。</p>
+        <p class="imeta"><i>采集</i>自动　节点 bounds 与屏幕尺寸换算<br><i>证据</i>bounds 数值 + 标注截图</p>
+      </div>
+    </div>
+    <div class="item">
+      <div class="iid">B-06</div>
+      <div class="ibody">
+        <div class="itop"><b>关闭标志对比度</b><span class="sev h">高</span></div>
+        <p class="icrit"><em>判定</em>图标与紧邻背景的对比度 ≥ 3:1。半透明白色 × 放在浅色海报上、或做成与背景同色的“隐形关闭”，判为“不可清晰辨识”。</p>
+        <p class="imeta"><i>采集</i>半自动　局部像素采样，需人工确认边界<br><i>证据</i>取样坐标 + 对比度值 + 原始截图</p>
+      </div>
+    </div>
+    <div class="item">
+      <div class="iid">B-07</div>
+      <div class="ibody">
+        <div class="itop"><b>关闭后是否继续弹</b><span class="sev s">严重</span></div>
+        <p class="icrit"><em>判定</em>关闭广告后 1500ms 内，同一页面或同一文档再次出现全屏/半屏广告。命中即违反第十条（四）。次日起再次出现属“反复弹窗”，单列记录。</p>
+        <p class="imeta"><i>采集</i>自动　关闭后窗口事件监听 1500ms<br><i>证据</i>事件序列 + 第二枚广告截图</p>
+      </div>
+    </div>
+    <div class="item">
+      <div class="iid">B-08</div>
+      <div class="ibody">
+        <div class="itop"><b>开屏时长与可跳过性</b><span class="sev">中</span></div>
+        <p class="icrit"><em>判定</em>开屏广告从展示到可关闭 ≤ 3000ms；总展示 ≤ 5000ms。超过且全程不可关，记为“强制观看”，工程口径（5s 系行业惯例，非法定上限）。</p>
+        <p class="imeta"><i>采集</i>自动　首帧时间戳 + 可点时间戳差值<br><i>证据</i>两帧截图 + 时间差</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ C ============ -->
+<section id="c">
+  <div class="sec-head"><h2>C 组 · 欺骗与误导</h2><span class="src">5 项</span></div>
+
+  <div class="clause">
+    <div class="ct">《互联网广告管理办法》第十一条 · 罚则第二十七条</div>
+    <p>不得以下列方式欺骗、误导用户点击、浏览广告：<br>（一）虚假的系统或者软件更新、报错、清理、通知等提示；<br>（二）虚假的播放、开始、暂停、停止、返回等标志；<br>（三）虚假的奖励承诺；<br>（四）其他欺骗、误导用户点击、浏览广告的方式。</p>
+    <div class="cn">第十条管“关不掉”，第十一条管“骗你点”。这两条常同时违反：一个假关闭按钮，既是关不掉，也是骗点击。</div>
+  </div>
+
+  <div class="items">
+    <div class="item">
+      <div class="iid">C-01</div>
+      <div class="ibody">
+        <div class="itop"><b>第二个“关闭”是陷阱</b><span class="sev h">高</span></div>
+        <p class="icrit"><em>判定</em>广告区域内除法定关闭标志外，还存在“×”“跳过”“关闭”样式的控件，点击后前台包名变为第三方或打开落地页。命中即违反第十一条（二）（四）。</p>
+        <p class="imeta"><i>采集</i>自动　对疑似控件逐个注入点击 + 包名比对，点完立即返回<br><i>证据</i>控件列表 + 每次点击的前后包名</p>
+      </div>
+    </div>
+    <div class="item">
+      <div class="iid">C-02</div>
+      <div class="ibody">
+        <div class="itop"><b>假系统提示</b><span class="sev h">高</span></div>
+        <p class="icrit"><em>判定</em>广告区域内出现“内存不足”“需要清理”“发现新版本”“网络异常”“存储已满”等系统语义文案，且点击后进入广告页面而非真实系统功能。命中词表 + 点击验证，两条同时满足才判违规。</p>
+        <p class="imeta"><i>采集</i>半自动　文案词表匹配（OCR + 节点 text），点击验证由人工确认<br><i>证据</i>截图 + 文案命中记录 + 点击后截图</p>
+      </div>
+    </div>
+    <div class="item">
+      <div class="iid">C-03</div>
+      <div class="ibody">
+        <div class="itop"><b>假奖励承诺</b><span class="sev">中</span></div>
+        <p class="icrit"><em>判定</em>出现“领取”“提现”“0 元购”“最高 XX 元”“恭喜中奖”等承诺，点击后在 3 次交互内无法抵达任何兑现路径。命中即违反第十一条（三）。</p>
+        <p class="imeta"><i>采集</i>半自动　文案词表 + 人工走查兑现链路<br><i>证据</i>截图 + 交互路径录屏</p>
+      </div>
+    </div>
+    <div class="item">
+      <div class="iid">C-04</div>
+      <div class="ibody">
+        <div class="itop"><b>整屏都能点</b><span class="sev h">高</span></div>
+        <p class="icrit"><em>判定</em>单个可点击节点面积 ≥ 屏幕面积的 60%，或广告区域内除关闭标志外无任何非点击区。归入第十一条（四）“其他欺骗、误导方式”。</p>
+        <p class="imeta"><i>采集</i>自动　节点面积占比计算 + 随机点位点击抽样<br><i>证据</i>空间树 + 命中率统计</p>
+      </div>
+    </div>
+    <div class="item">
+      <div class="iid">C-05</div>
+      <div class="ibody">
+        <div class="itop"><b>仿系统控件</b><span class="sev">中</span></div>
+        <p class="icrit"><em>判定</em>广告内出现与系统返回键、播放控件、进度条、通知栏高度相似的图形，点击后行为与图形暗示不一致。归入第十一条（二）。</p>
+        <p class="imeta"><i>采集</i>人工　视觉比对，必要时做相似度标注<br><i>证据</i>截图 + 系统控件对照图</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ D ============ -->
+<section id="d">
+  <div class="sec-head"><h2>D 组 · 摇一摇</h2><span class="src">5 项</span></div>
+
+  <div class="clause">
+    <div class="ct">TC260《摇一摇广告触发行为安全要求》v1.0-202507 第 5 章（节选）</div>
+    <p>a）设置显著的摇动手机图标、动画，或包含“摇动”等文字引导语，颜色与背景差异较大；<br>b）清晰明确说明执行操作后可能引发的结果；<br>c）在展示页面提供显著的关闭标志，确保一键关闭；<br>d）在设置页面提供便捷的摇一摇广告功能关闭渠道，用户关闭后不再展示；<br>e）灵敏度阈值不得在用户走路、乘车、拿起、放下设备等非自主意愿下触发跳转；<br>f）向 App 运营者提供功能开启或关闭的参数配置；<br>g）接入前按 5 e）检测，防止未经同意的参数更新；<br>h）自营摇一摇广告的，遵守对 SDK 运营者提出的要求。</p>
+    <div class="cn">5 e）的注原文是“可参照如设备加速度不小于 15 m/s²，双向转动角度不小于 35°，操作时间不少于 3s，或同时考虑加速度值与方向、转动角度的方式，或与前述单一触发条件等效的其他参数”。注意“或等效”——它不是三道必须同时满足的硬门槛，执法时看的是结果：日常动作会不会误触发。</div>
+  </div>
+
+  <div class="items">
+    <div class="item">
+      <div class="iid">D-01</div>
+      <div class="ibody">
+        <div class="itop"><b>摇动引导是否明示</b><span class="sev">中</span></div>
+        <p class="icrit"><em>判定</em>存在“摇一摇”“摇动手机”文字、摇动图标或动画，颜色与背景对比度 ≥ 3:1，且不是藏在角落的 8dp 小字。对应 5 a）。</p>
+        <p class="imeta"><i>采集</i>半自动　OCR + 图形识别，人工确认<br><i>证据</i>截图 + 对比度采样</p>
+      </div>
+    </div>
+    <div class="item">
+      <div class="iid">D-02</div>
+      <div class="ibody">
+        <div class="itop"><b>是否说明会跳到哪里</b><span class="sev">中</span></div>
+        <p class="icrit"><em>判定</em>存在“跳转第三方应用”“查看详情”“打开 XX”等结果说明，与实际跳转目标一致。只在跳转后才知道去哪的，对应 5 b）判为未明示。</p>
+        <p class="imeta"><i>采集</i>半自动　文案匹配 + 实际跳转目标比对<br><i>证据</i>截图 + 跳转目标包名</p>
+      </div>
+    </div>
+    <div class="item">
+      <div class="iid">D-03</div>
+      <div class="ibody">
+        <div class="itop"><b>触发阈值是否达标</b><span class="sev s">严重</span></div>
+        <p class="icrit"><em>判定</em>用手持模拟日常动作（步行、上下车、拿起放下）各 10 次，误触发为 0 次方为达标；参数低于 15 m/s²、35°、3s 且未做等效论证的，判为低阈值。对应 5 e）。</p>
+        <p class="imeta"><i>采集</i>人工　需标准加速度激励装置或人工动作脚本，详见后文“自动化边界”<br><i>证据</i>动作脚本 + 误触发计数 + 设备参数</p>
+      </div>
+    </div>
+    <div class="item">
+      <div class="iid">D-04</div>
+      <div class="ibody">
+        <div class="itop"><b>能不能关掉摇一摇</b><span class="sev">中</span></div>
+        <p class="icrit"><em>判定</em>App 设置内 2 级菜单可达“摇一摇广告”关闭项，关闭后重启 App 不再出现摇一摇交互。找不到入口，对应 5 d）判为未提供。</p>
+        <p class="imeta"><i>采集</i>人工　设置页走查 + 关闭后回归验证<br><i>证据</i>设置页截图 + 关闭前后对比</p>
+      </div>
+    </div>
+    <div class="item">
+      <div class="iid">D-05</div>
+      <div class="ibody">
+        <div class="itop"><b>跳转后是否强制下载</b><span class="sev h">高</span></div>
+        <p class="icrit"><em>判定</em>摇动触发后，未经用户再次确认即自动下载安装包，或直接拉起应用商店安装页。对应 5 e）注与第十一条（四）。</p>
+        <p class="imeta"><i>采集</i>人工 + 自动　监听下载任务与商店 Activity 拉起<br><i>证据</i>下载记录 + 跳转后截图</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <b>这一组必须诚实标注“未验证”。</b>加速度阈值这件事，任何装在手机上的软件都测不了——它需要能对被测应用施加已知加速度的振动台或校准装置，读别人的传感器数据是做不到的。所以 D-03 的正确做法是：识别出“存在摇一摇交互”，把这一项标记为“未验证”，并引导用户按脚本实测。把没测的写成达标，整份报告的信用就没了。
+  </div>
+</section>
+
+<!-- ============ E ============ -->
+<section id="e">
+  <div class="sec-head"><h2>E 组 · 影响正常使用</h2><span class="src">3 项</span></div>
+
+  <div class="clause">
+    <div class="ct">《广告法》第四十四条第二款 · 《互联网广告管理办法》第十条（四）</div>
+    <p>利用互联网发布、发送广告，不得影响用户正常使用网络。在互联网页面以弹出等形式发布的广告，应当显著标明关闭标志，确保一键关闭。<br>在浏览同一页面、同一文档过程中，关闭后继续弹出广告，影响用户正常使用网络。</p>
+    <div class="cn">这一组没有明确数字，判定全靠频次和面积，所以更要写清楚口径，否则无法复现。</div>
+  </div>
+
+  <div class="items">
+    <div class="item">
+      <div class="iid">E-01</div>
+      <div class="ibody">
+        <div class="itop"><b>单次会话广告频次</b><span class="sev">中</span></div>
+        <p class="icrit"><em>判定</em>一次前台会话（从切到前台到切走）内出现全屏广告 ≥ 2 次记提示，≥ 3 次计入违规。冷启动与热启动分开统计。</p>
+        <p class="imeta"><i>采集</i>自动　会话内全屏窗口事件计数<br><i>证据</i>会话时间轴 + 每枚广告截图</p>
+      </div>
+    </div>
+    <div class="item">
+      <div class="iid">E-02</div>
+      <div class="ibody">
+        <div class="itop"><b>是否堵死首屏</b><span class="sev">中</span></div>
+        <p class="icrit"><em>判定</em>广告占首屏面积 ≥ 80%，且持续超过 5000ms 或全程不可关闭。二者同时成立才判违规，避免把正常开屏误伤。</p>
+        <p class="imeta"><i>采集</i>自动　首屏节点面积占比 + 可关闭性<br><i>证据</i>首屏截图 + 面积计算</p>
+      </div>
+    </div>
+    <div class="item">
+      <div class="iid">E-03</div>
+      <div class="ibody">
+        <div class="itop"><b>是否在操作中打断</b><span class="sev">中</span></div>
+        <p class="icrit"><em>判定</em>输入框处于聚焦态、列表处于惯性滑动、或视频播放中，弹出全屏广告即计入。这类打断对用户伤害最大，也最难解释成“商业惯例”。</p>
+        <p class="imeta"><i>采集</i>自动　采集焦点状态与滚动速度，与广告出现时刻对齐<br><i>证据</i>事件对齐表 + 截图</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 评分 ============ -->
+<section id="score">
+  <div class="sec-head"><h2>怎么算分、怎么定级</h2><span class="src">判定规则</span></div>
+
+  <p class="lede" style="font-size:15px">加权不是为了让分数好看，是为了让“关不掉”这类问题在任何情况下都压得住“标识太小”。所以严重项一票否决，不参与加权平均。</p>
+
+  <div class="score">
+    <pre>总分 = 100 − 15 × 严重项数 − 6 × 高项数 − 2 × 中项数    （下限 0）
+
+未验证项不计分，但在报告里单独列出
+覆盖率 &lt; 80% 的，评级后加注「覆盖不足」，不对外发布</pre>
+  </div>
+
+  <div class="grades">
+    <div><span class="gk">D</span><span class="gv"><b>严重项 ≥ 1。</b>只要有一条“没有关闭按钮”“点两次才关”“关闭是跳转”，就是 D。这类问题没有“轻微”一说。</span></div>
+    <div><span class="gk">C</span><span class="gv"><b>严重 = 0 且 高 ≥ 2。</b>关得掉，但关得费劲：按钮 16dp、对比度 1.8:1、关完再弹一枚。用户的实际体验在这里崩。</span></div>
+    <div><span class="gk">B</span><span class="gv"><b>严重 = 0，且 高 = 1 或 中 ≥ 4。</b>主要问题在标识和诱导，功能性关闭正常。适合内部整改，不适合对外点名。</span></div>
+    <div><span class="gk">A</span><span class="gv"><b>其余情形。</b>不是“合规认证”，只是本次 20 项没有发现问题。报告里必须这么写，别给背书。</span></div>
+  </div>
+
+  <div class="callout">
+    <b>取最差，不取平均。</b>同一个 App 跑 3 轮冷启动，结论用最差那一轮。违规是“存在性”问题——只要有一次关不掉，它就能关不掉。用平均值会把偶发的强制观看洗掉，这是自欺。
+  </div>
+</section>
+
+<!-- ============ 边界 ============ -->
+<section id="limits">
+  <div class="sec-head"><h2>自动化边界：哪些能测，哪些测不了</h2><span class="src">工程约束</span></div>
+
+  <ul class="list">
+    <li><b>自动（12 项）。</b>靠无障碍节点树和窗口事件，能拿到控件是否存在、bounds、enable 状态、可点击性、点击后前台包名。这些结论是确定的，不需要人复核。</li>
+    <li><b>半自动（8 项）。</b>截图 + OCR + 像素采样。OCR 对艺术字、动效中间帧、半透明文字识别率会明显下降，每条都必须人工过一眼再进报告。</li>
+    <li><b>人工（3 项）。</b>摇一摇阈值、设置页开关、跳转后强制下载。前两项没有软件替代方案，第三项可以靠监听下载任务半自动辅助。</li>
+    <li><b>最大的误差源是自绘控件。</b>H5、Flutter、Unity 做出来的广告页，在节点树里往往只有一两个 View，内部结构全拿不到。这类页面自动检测会直接退化成截图方案，覆盖率要单独标注，不能混进总体覆盖率。</li>
+    <li><b>复现条件必须固定。</b>同一台设备、同一网络、同一版本、清后台冷启动 3 轮。设备不同、网络不同，广告素材都可能不同——这条不写清楚，报告就无法被复核。</li>
+  </ul>
+
+  <p class="lede" style="font-size:15px;margin-top:22px">换句话说：能自动判的，判死；判不了的，标“未验证”。中间那档最危险——看起来有结论，其实是猜的。</p>
+</section>
+
+<!-- ============ 举报 ============ -->
+<section id="report">
+  <div class="sec-head"><h2>报告与举报</h2><span class="src">证据链</span></div>
+
+  <ul class="list">
+    <li><b>每条证据四件套：</b>带时间戳的截图、节点树快照（json）、复现步骤、引用条款原文。缺任何一件，这条结论在复核时就会被推翻。</li>
+    <li><b>引用要引原文。</b>法条改写过的句子在举报材料里没有效力；工程口径（24dp、3:1、1500ms）必须单独标成“工程口径”，不能混进法条引文里。</li>
+    <li><b>举报渠道：</b>12315（市场监管部门，广告违法）／12321（工信部，App 侵权与骚扰）／属地市场监管局官网。开屏广告问题两条线都适用。</li>
+    <li><b>材料清单：</b>应用名称与版本号、下载渠道、问题截图、复现步骤、违反的具体条款。附上版本号这一项最容易被忽略，也最容易被退回。</li>
+    <li><b>定性边界：</b>这份报告是举报线索，不是行政处罚决定。评级只代表本次检测，不代表监管认定，产品文案里不能写成“违法认定”。</li>
+  </ul>
+</section>
+
+<div class="footer">
+  <span>广告体检 · 检测项与判定标准 v1.0</span>
+  <span>配合《开屏净化助手技术方案》W8 使用</span>
+  <span>2026-11-06</span>
+  <span>条款以现行有效文本为准</span>
+</div>
+
+</div>
+</body>
+</html>

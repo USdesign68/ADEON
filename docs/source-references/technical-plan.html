@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>开屏净化助手 · 技术方案</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230F6A5F'/%3E%3Crect x='7' y='14' width='18' height='3' fill='%23EDEEE9'/%3E%3Crect x='14' y='7' width='3' height='18' fill='%23EDEEE9'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Serif+SC:wght@500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap">
+<style>
+:root{
+  --paper:#EDEEE9;
+  --panel:#F6F7F3;
+  --ink:#171C21;
+  --ink2:#4E5763;
+  --ink3:#7A838F;
+  --line:#C5CBC1;
+  --line2:#DCE0D7;
+  --accent:#0F6A5F;
+  --accent-ink:#0A4D45;
+  --accent-soft:rgba(15,106,95,.09);
+  --warn:#9E3B22;
+  --mono:ui-monospace,"Cascadia Mono","Cascadia Code",Consolas,"SF Mono",Menlo,monospace;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --serif:"Noto Serif SC","Songti SC","SimSun",serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:16px;
+  line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:28px 20px 80px}
+
+/* ---------- 页首 ---------- */
+.masthead{padding:12px 0 26px;border-bottom:1px solid var(--line)}
+.kicker{
+  font-family:var(--mono);font-size:12px;color:var(--ink3);
+  letter-spacing:.02em;margin-bottom:18px;
+}
+h1{
+  font-family:var(--serif);font-weight:600;
+  font-size:36px;line-height:1.24;letter-spacing:-.01em;
+  margin-bottom:14px;
+}
+.lede{font-size:16px;color:var(--ink2);max-width:34em;line-height:1.8}
+.spec{
+  display:grid;grid-template-columns:1fr;gap:1px;
+  margin-top:26px;background:var(--line2);
+  border:1px solid var(--line2);
+}
+.spec > div{background:var(--panel);padding:12px 14px}
+.spec dt{font-family:var(--mono);font-size:11.5px;color:var(--ink3);margin-bottom:3px}
+.spec dd{font-size:14px;color:var(--ink);line-height:1.55}
+
+/* ---------- 通用板块 ---------- */
+section{margin-top:54px}
+.sec-head{
+  display:flex;align-items:baseline;justify-content:space-between;gap:16px;
+  border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:26px;
+}
+h2{
+  font-family:var(--serif);font-weight:600;font-size:24px;line-height:1.35;
+  letter-spacing:-.005em;
+}
+.sec-head .count{font-family:var(--mono);font-size:12px;color:var(--ink3);white-space:nowrap}
+h3{
+  font-family:var(--sans);font-weight:700;font-size:16px;
+  margin:30px 0 12px;color:var(--ink);
+}
+p.note{font-size:14.5px;color:var(--ink2);max-width:40em}
+p.note strong{color:var(--ink);font-weight:500}
+
+/* ---------- 架构图 ---------- */
+.arch{border:1px solid var(--line);background:var(--panel)}
+.layer{
+  display:grid;grid-template-columns:46px 1fr;
+  border-bottom:1px solid var(--line2);
+}
+.layer-id{
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:12px;color:var(--accent);
+  border-right:1px solid var(--line2);
+  background:var(--accent-soft);
+  letter-spacing:.04em;
+}
+.layer-body{padding:14px 14px 16px;min-width:0}
+.layer-title{
+  display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;
+  margin-bottom:10px;
+}
+.layer-title b{font-size:14.5px;font-weight:700;letter-spacing:.01em}
+.layer-title span{font-family:var(--mono);font-size:11.5px;color:var(--ink3)}
+.nodes{display:grid;grid-template-columns:1fr;gap:7px}
+.node{
+  border:1px solid var(--line);
+  border-left:2px solid var(--accent);
+  background:var(--paper);
+  padding:8px 10px;
+  font-size:13.5px;line-height:1.5;
+  min-width:0;
+}
+.node b{display:block;font-weight:500;font-size:13.5px}
+.node i{
+  display:block;font-style:normal;
+  font-family:var(--mono);font-size:11.5px;color:var(--ink3);
+  margin-top:2px;word-break:break-word;
+}
+.node.ghost{border-left-color:var(--ink3);opacity:.85}
+
+/* 层间连线 */
+.link{
+  display:grid;grid-template-columns:46px 1fr;
+  align-items:center;background:var(--panel);
+}
+.link-line{
+  display:flex;align-items:center;justify-content:center;
+  padding:0;height:40px;position:relative;
+}
+.link-line::before{
+  content:"";position:absolute;left:50%;top:0;bottom:0;
+  width:1px;background:var(--line);transform:translateX(-50%);
+}
+.link-line b{
+  position:relative;z-index:1;
+  font-family:var(--mono);font-size:13px;color:var(--accent);
+  background:var(--panel);line-height:1;padding:4px 0;
+}
+.link-note{
+  padding:4px 14px;font-family:var(--mono);font-size:11.5px;
+  color:var(--ink3);
+}
+
+.boundary{
+  margin-top:14px;border:1px solid var(--line);
+  border-left:3px solid var(--warn);
+  background:var(--paper);
+  padding:14px 16px;
+}
+.boundary b{
+  display:block;font-size:13.5px;font-weight:700;
+  color:var(--warn);margin-bottom:8px;
+  font-family:var(--mono);letter-spacing:.02em;
+}
+.boundary ul{
+  list-style:none;display:grid;grid-template-columns:1fr;gap:6px;
+}
+.boundary li{font-size:13.5px;color:var(--ink2);padding-left:16px;position:relative}
+.boundary li::before{
+  content:"×";position:absolute;left:0;top:0;
+  color:var(--warn);font-family:var(--mono);font-size:12px;
+}
+
+/* ---------- 时序 ---------- */
+.seq{margin-top:6px;display:grid;grid-template-columns:1fr;gap:0}
+.step{
+  display:grid;grid-template-columns:34px 1fr;gap:12px;
+  padding:11px 0;border-bottom:1px solid var(--line2);
+}
+.step-n{
+  font-family:var(--mono);font-size:11.5px;color:var(--accent);
+  border:1px solid var(--line);background:var(--accent-soft);
+  height:24px;display:flex;align-items:center;justify-content:center;
+  margin-top:2px;
+}
+.step-b{min-width:0}
+.step-b b{font-size:14px;font-weight:500;display:block;line-height:1.55}
+.step-b span{
+  font-size:12.5px;color:var(--ink3);font-family:var(--mono);
+  display:block;margin-top:2px;line-height:1.6;word-break:break-word;
+}
+
+@media (min-width:640px){
+  .wrap{padding:36px 32px 96px}
+  h1{font-size:46px}
+  .lede{font-size:17px}
+  .spec{grid-template-columns:repeat(3,1fr)}
+  .nodes{grid-template-columns:repeat(2,1fr)}
+  .boundary ul{grid-template-columns:repeat(2,1fr)}
+  .layer{grid-template-columns:58px 1fr}
+  .link{grid-template-columns:58px 1fr}
+  .link-line{height:44px}
+  .seq{grid-template-columns:repeat(2,1fr);gap:0 26px}
+  .step{border-bottom:1px solid var(--line2)}
+}
+@media (min-width:900px){
+  .nodes{grid-template-columns:repeat(4,1fr)}
+  h1{font-size:52px}
+}
+/* ---------- 代码块 ---------- */
+.code{background:#171C21;border:1px solid #2C333B;margin:14px 0 0;overflow:hidden}
+.code-head{
+  display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:7px 12px;background:#1E242B;border-bottom:1px solid #2C333B;
+  font-family:var(--mono);font-size:11.5px;color:#8B98A4;
+}
+.code pre{
+  margin:0;padding:14px 16px;overflow-x:auto;
+  font-family:var(--mono);font-size:12.5px;line-height:1.72;
+  color:#DCE3DC;white-space:pre;
+}
+.code .cm{color:#6E7C88}
+
+/* ---------- 选项卡 ---------- */
+.tabs{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-top:22px}
+.tab{
+  appearance:none;background:none;border:0;border-bottom:2px solid transparent;
+  padding:8px 12px;font-family:var(--sans);font-size:13.5px;color:var(--ink2);
+  cursor:pointer;transition:color .15s,border-color .15s;
+}
+.tab[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent);font-weight:500}
+.tab:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.pane[hidden]{display:none}
+
+/* ---------- 表格 ---------- */
+.scroll-x{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tbl{width:100%;border-collapse:collapse;table-layout:fixed;min-width:660px}
+.tbl th{
+  text-align:left;font-family:var(--mono);font-weight:400;font-size:11.5px;
+  color:var(--ink3);padding:8px 10px;border-bottom:1px solid var(--line);
+  background:var(--panel);
+}
+.tbl td{
+  padding:9px 10px;border-bottom:1px solid var(--line2);
+  vertical-align:top;font-size:13.5px;line-height:1.6;color:var(--ink2);
+}
+.tbl code{font-family:var(--mono);font-size:12px;color:var(--accent-ink);background:none}
+.tbl .req{color:var(--accent);font-family:var(--mono);font-size:11.5px}
+.tbl .opt{color:var(--ink3);font-family:var(--mono);font-size:11.5px}
+
+/* ---------- 列表 ---------- */
+.list{list-style:none;display:grid;gap:9px;margin-top:6px}
+.list li{font-size:14px;color:var(--ink2);padding-left:18px;position:relative;line-height:1.72}
+.list li::before{content:"";position:absolute;left:0;top:.68em;width:7px;height:1px;background:var(--accent)}
+.list li b{color:var(--ink);font-weight:500}
+.callout{
+  border-left:2px solid var(--accent);background:var(--accent-soft);
+  padding:11px 14px;font-size:13.5px;color:var(--ink2);line-height:1.7;margin:18px 0 0;
+}
+.callout b{color:var(--accent-ink);font-weight:500}
+
+/* ---------- 甘特图 ---------- */
+.scroll-x.gantt-box{border:1px solid var(--line);background:var(--panel);margin-top:18px}
+.gantt{min-width:880px;position:relative}
+.gantt-head{
+  display:grid;grid-template-columns:200px repeat(11,1fr);
+  border-bottom:1px solid var(--line);position:relative;z-index:3;
+  background:var(--panel);
+}
+.gantt-head > div:first-child{border-right:1px solid var(--line2)}
+.gh{
+  font-family:var(--mono);font-size:11px;color:var(--ink3);
+  text-align:center;padding:9px 0 20px;border-left:1px solid var(--line2);
+  position:relative;
+}
+.gh.w0{color:var(--accent)}
+.ms{
+  position:absolute;left:50%;bottom:6px;transform:translateX(-50%) rotate(45deg);
+  width:6px;height:6px;background:var(--accent);
+}
+.grow{
+  display:grid;grid-template-columns:200px repeat(11,1fr);align-items:center;
+  height:38px;border-bottom:1px solid var(--line2);position:relative;z-index:2;
+}
+.grow:last-child{border-bottom:0}
+.grow.gate{border-bottom:1px solid var(--accent);border-bottom-style:dashed}
+.glabel{font-size:12.5px;padding-left:12px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gbar{height:13px;background:var(--accent);opacity:.85;margin:0 2px}
+.gbar.ghost{background:none;border:1px solid var(--accent);opacity:.7}
+.gl{
+  position:absolute;left:200px;right:0;top:34px;bottom:0;
+  display:grid;grid-template-columns:repeat(11,1fr);z-index:1;pointer-events:none;
+}
+.gl > div{border-left:1px solid var(--line2)}
+.legend{
+  display:flex;flex-wrap:wrap;gap:18px;margin-top:10px;
+  font-family:var(--mono);font-size:11.5px;color:var(--ink3);
+}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend .sw{width:16px;height:6px;background:var(--accent);opacity:.85}
+.legend .dm{width:6px;height:6px;background:var(--accent);transform:rotate(45deg)}
+.legend .gw{width:16px;height:6px;border:1px solid var(--accent);opacity:.7}
+
+/* ---------- W0 前置周 ---------- */
+.w0box{
+  border:1px solid var(--line);border-left:2px solid var(--accent);
+  background:var(--panel);padding:16px 18px;margin-top:18px;
+}
+.w0box .wt{font-family:var(--mono);font-size:11px;color:var(--accent);margin-bottom:10px}
+
+/* ---------- 页脚 ---------- */
+.footer{
+  margin-top:64px;padding-top:16px;border-top:1px solid var(--line);
+  display:flex;flex-wrap:wrap;gap:8px 28px;
+  font-family:var(--mono);font-size:11.5px;color:var(--ink3);
+}
+
+.gspan{display:none}
+
+@media (min-width:640px){
+  .grow{height:40px}
+}
+
+@media (max-width:639px){
+  .sec-head{flex-wrap:wrap;gap:6px}
+  .sec-head h2{flex:1 1 100%}
+  .sec-head .count{margin-left:auto}
+  .gantt{min-width:0}
+  .gantt-head,.gl{display:none}
+  .grow{grid-template-columns:1fr auto;height:auto;padding:9px 0;gap:10px}
+  .glabel{white-space:normal;overflow:visible;text-overflow:clip;padding-left:0;font-size:13px}
+  .gbar{display:none}
+  .gspan{
+    display:block;font-family:var(--mono);font-size:11.5px;
+    color:var(--accent);white-space:nowrap;
+  }
+  .gantt{padding:4px 12px}
+  .tbl{min-width:0}
+  .tbl th,.tbl td{padding:8px 6px;font-size:12.5px;line-height:1.55}
+  .tbl th:nth-child(1),.tbl td:nth-child(1){padding-right:14px}
+  .code pre{font-size:11.5px;padding:12px}
+  .legend{gap:10px 14px}
+  .legend span{font-size:11px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <div class="kicker">技术方案 · v1.0 · 2026-11-06</div>
+  <h1>开屏净化助手</h1>
+  <p class="lede">一个只做 Android 的本地规则引擎：在应用启动的那几秒里，把该点的“跳过”点掉，把不该发生的跳转拦下来。本文给出分层架构、规则文件格式与十周排期，可以直接照着开工。</p>
+  <dl class="spec">
+    <div><dt>目标平台</dt><dd>Android 12 及以上（API 31+），单端</dd></div>
+    <div><dt>技术栈</dt><dd>Kotlin + AccessibilityService，JSON5 规则，无 Root</dd></div>
+    <div><dt>工程量级</dt><dd>1 名开发 10 周出 v1.0</dd></div>
+  </dl>
+</header>
+
+<!-- ================= 架构 ================= -->
+<section id="arch">
+  <div class="sec-head">
+    <h2>分层架构</h2>
+    <span class="count">4 层，自上而下为调用方向</span>
+  </div>
+
+  <div class="arch">
+
+    <div class="layer">
+      <div class="layer-id">L1</div>
+      <div class="layer-body">
+        <div class="layer-title"><b>用户界面</b><span>Jetpack Compose</span></div>
+        <div class="nodes">
+          <div class="node"><b>首页状态</b><i>今日跳过次数 / 当前前台应用</i></div>
+          <div class="node"><b>规则管理</b><i>按应用总开关 · 单条规则启停</i></div>
+          <div class="node"><b>授权引导</b><i>无障碍 · 后台保活 · 电池白名单</i></div>
+          <div class="node"><b>白名单</b><i>金融、支付、政务默认加入</i></div>
+          <div class="node"><b>体检报告</b><i>违规广告扫描结果与举报入口</i></div>
+          <div class="node"><b>导入导出</b><i>本地规则包 · 订阅链接</i></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="link">
+      <div class="link-line"><b>↓</b></div>
+      <div class="link-note">申请权限、下发开关状态</div>
+    </div>
+
+    <div class="layer">
+      <div class="layer-id">L2</div>
+      <div class="layer-body">
+        <div class="layer-title"><b>系统与能力层</b><span>Android Framework</span></div>
+        <div class="nodes">
+          <div class="node"><b>AccessibilityService</b><i>TYPE_WINDOW_STATE_CHANGED + 节点树读取</i></div>
+          <div class="node"><b>前台服务与常驻通知</b><i>保活 · 一键全停</i></div>
+          <div class="node"><b>Shizuku（可选）</b><i>绕过“受限制的设置” · 更稳的注入点击</i></div>
+          <div class="node"><b>存储</b><i>Room 规则缓存 · 命中日志（仅结构化字段）</i></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="link">
+      <div class="link-line"><b>↓</b></div>
+      <div class="link-note">窗口事件与受限节点树（深度 ≤ 12，节点 ≤ 400）</div>
+    </div>
+
+    <div class="layer">
+      <div class="layer-id">L3</div>
+      <div class="layer-body">
+        <div class="layer-title"><b>规则引擎内核</b><span>纯 Kotlin，无第三方运行时</span></div>
+        <div class="nodes">
+          <div class="node"><b>规则仓库与版本路由</b><i>包名 + Activity → 规则集</i></div>
+          <div class="node"><b>选择器求值器</b><i>文本正则 / resource-id / class / 层级 / 空间约束</i></div>
+          <div class="node"><b>动作执行器</b><i>click · back · wait · 无操作</i></div>
+          <div class="node"><b>冷却与节流</b><i>会话次数 · 最小间隔 · 单规则 24h 限频</i></div>
+          <div class="node"><b>安全闸门</b><i>前台包名校验 · 白名单 · 敏感词 · 金融黑名单</i></div>
+          <div class="node"><b>遥测</b><i>规则 id + 界面指纹哈希，不含屏幕内容</i></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="link">
+      <div class="link-line"><b>↓</b></div>
+      <div class="link-note">拉取订阅（下行） · 匿名聚合上报（上行）</div>
+    </div>
+
+    <div class="layer" style="border-bottom:0">
+      <div class="layer-id">L4</div>
+      <div class="layer-body">
+        <div class="layer-title"><b>云端</b><span>只读分发为主，单机可用</span></div>
+        <div class="nodes">
+          <div class="node"><b>订阅分发</b><i>CDN 静态 JSON5 · ETag · 断网走本地缓存</i></div>
+          <div class="node"><b>签名与灰度</b><i>Ed25519 验签 · stable / beta 通道</i></div>
+          <div class="node"><b>失效反馈聚合</b><i>同包同规则失败率越阈值 → 自动降级</i></div>
+          <div class="node"><b>版本清单与回滚</b><i>保留上一版，客户端可一键回滚</i></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="boundary">
+    <b>架构级红线（不做这些，是这个产品能存在的前提）</b>
+    <ul>
+      <li>不做 HTTPS 解密，不安装根证书</li>
+      <li>不注入目标进程，不读取应用私有数据</li>
+      <li>屏幕内容永不出设备，快照仅存本地</li>
+      <li>不默认全局开启，每个应用单独授权</li>
+    </ul>
+  </div>
+
+  <h3>一次开屏的完整时序</h3>
+  <p class="note" style="margin-bottom:14px">从事件产生到结果落库，全程在本机完成，最长不超过 800 毫秒；任何一步不满足就立即放弃，不做重试。</p>
+
+  <div class="seq">
+    <div class="step"><div class="step-n">01</div><div class="step-b"><b>窗口切换事件</b><span>TYPE_WINDOW_STATE_CHANGED → 记录包名与 Activity</span></div></div>
+    <div class="step"><div class="step-n">02</div><div class="step-b"><b>版本路由</b><span>包名 + Activity 匹配规则集，校验 minAppVer / maxAppVer</span></div></div>
+    <div class="step"><div class="step-n">03</div><div class="step-b"><b>安全闸门</b><span>当前前台包名 == 规则包名？白名单？会话冷却中？</span></div></div>
+    <div class="step"><div class="step-n">04</div><div class="step-b"><b>受限遍历</b><span>800ms 窗口内一次 DFS，深度 ≤ 12，节点 ≤ 400，超限即止</span></div></div>
+    <div class="step"><div class="step-n">05</div><div class="step-b"><b>选择器求值</b><span>多命中时取可点击祖先 + 面积最小 + 文本权重最高者</span></div></div>
+    <div class="step"><div class="step-n">06</div><div class="step-b"><b>敏感词复核</b><span>命中节点文案含“同意 / 授权 / 支付 / 确认 / 绑定”即放弃</span></div></div>
+    <div class="step"><div class="step-n">07</div><div class="step-b"><b>执行动作</b><span>click → 校验窗口是否已切走；未切走则按规则决定 back 或放弃</span></div></div>
+    <div class="step"><div class="step-n">08</div><div class="step-b"><b>结果落库</b><span>记录 命中 / 未命中 / 误触回滚，本地聚合后匿名上报规则 id</span></div></div>
+  </div>
+</section>
+
+<!-- ================= 规则格式 ================= -->
+<section id="rules">
+  <div class="sec-head">
+    <h2>规则文件格式</h2>
+    <span class="count">JSON5 · 纯数据 · 可热更新</span>
+  </div>
+
+  <p class="note">引擎不认识任何具体应用——它只认规则。新增一个 App 的支持、修一条失效的选择器，都只是加一个文件、推一次订阅，<strong>不需要发版</strong>。这是这套方案能不能长期维护下去的关键。</p>
+
+  <div class="code">
+    <div class="code-head"><span>目录结构</span><span>androidApp/src/main/assets/rules</span></div>
+<pre>rules/
+  index.json5              <span class="cm">// 包名 → 规则清单、文件校验和、最低客户端版本</span>
+  com.zhihu.android/
+    splash.json5
+    interstitial.json5
+  _shared/
+    jump-guard.json5       <span class="cm">// 跨应用通配规则，pkg = "*"</span></pre>
+  </div>
+
+  <p class="note" style="margin-top:14px">文件命名固定为 <code style="font-family:var(--mono);font-size:13px">&lt;pkg&gt;/&lt;scene&gt;.json5</code>，scene 只有四个取值：<code style="font-family:var(--mono);font-size:13px">splash</code>、<code style="font-family:var(--mono);font-size:13px">interstitial</code>、<code style="font-family:var(--mono);font-size:13px">dialog</code>、<code style="font-family:var(--mono);font-size:13px">jumpGuard</code>。一个文件可含一条或多条规则，但同一 scene 下的规则共享同一份版本区间。</p>
+
+  <h3>顶层字段</h3>
+  <div class="scroll-x">
+  <table class="tbl">
+    <colgroup><col style="width:15%"><col style="width:11%"><col style="width:9%"><col style="width:65%"></colgroup>
+    <thead><tr><th>字段</th><th>类型</th><th>约束</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><code>schema</code></td><td>int</td><td class="req">必填</td><td>固定为 <code>3</code>。低版本规则由引擎启动时迁移，不做长期兼容。</td></tr>
+      <tr><td><code>id</code></td><td>string</td><td class="req">必填</td><td><code>&lt;pkg&gt;/&lt;scene&gt;-&lt;序号&gt;</code>，全局唯一。它同时是遥测主键，改名等于丢历史数据。</td></tr>
+      <tr><td><code>pkg</code></td><td>string</td><td class="req">必填</td><td>目标包名。通配规则写 <code>"*"</code>，仅允许 <code>jumpGuard</code> 场景使用。</td></tr>
+      <tr><td><code>name</code></td><td>string</td><td class="req">必填</td><td>中文短名，展示在规则列表里，不超过 16 字。</td></tr>
+      <tr><td><code>rev</code></td><td>int</td><td class="req">必填</td><td>修订号，单调递增。灰度时用它与线上版本做差异比对。</td></tr>
+      <tr><td><code>ver</code></td><td>string</td><td class="req">必填</td><td>宿主版本区间，<code>"&gt;=8.2.0 &lt;10.0.0"</code>。不在区间内直接跳过，不做降级尝试。</td></tr>
+      <tr><td><code>scene</code></td><td>enum</td><td class="req">必填</td><td><code>splash</code> / <code>interstitial</code> / <code>dialog</code> / <code>jumpGuard</code>。</td></tr>
+      <tr><td><code>when</code></td><td>object</td><td class="req">必填</td><td>触发条件，见下表。</td></tr>
+      <tr><td><code>match</code></td><td>object</td><td class="req">必填</td><td>匹配条件，见下表。</td></tr>
+      <tr><td><code>act</code></td><td>object</td><td class="req">必填</td><td>命中后的动作，见下表。</td></tr>
+      <tr><td><code>guard</code></td><td>object</td><td class="opt">选填</td><td>冷却与限频。缺省取引擎默认值，不建议在规则里放开频次。</td></tr>
+      <tr><td><code>tags</code></td><td>string[]</td><td class="opt">选填</td><td>分组标签，用于按渠道、人群灰度。</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>when / act / guard</h3>
+  <div class="scroll-x">
+  <table class="tbl">
+    <colgroup><col style="width:22%"><col style="width:12%"><col style="width:9%"><col style="width:57%"></colgroup>
+    <thead><tr><th>键</th><th>类型</th><th>约束</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><code>when.activity</code></td><td>string[]</td><td class="req">必填</td><td>Activity 名，支持通配，如 <code>"*.SplashActivity"</code>。空数组视为匹配任意界面，仅限 <code>jumpGuard</code>。</td></tr>
+      <tr><td><code>when.elapsedMax</code></td><td>int</td><td class="opt">选填</td><td>冷启动后多少毫秒内有效，默认 <code>6000</code>。<code>0</code> 表示不限。</td></tr>
+      <tr><td><code>when.stayMs</code></td><td>int</td><td class="opt">选填</td><td>界面出现后等待多久再动作，默认 <code>120</code>。用来避开首帧渲染，防止点到还没画完的占位图。</td></tr>
+      <tr><td><code>when.firstLaunchOnly</code></td><td>bool</td><td class="opt">选填</td><td>仅冷启动首次生效，默认 <code>true</code>。</td></tr>
+      <tr><td><code>when.pkgSwitchWithin</code></td><td>int</td><td class="opt">选填</td><td>只有当前台包名在 N 毫秒内发生过切换时才生效。这是 <code>jumpGuard</code> 的防误判开关，别省。</td></tr>
+      <tr><td><code>act.type</code></td><td>enum</td><td class="req">必填</td><td><code>click</code> / <code>back</code> / <code>wait</code> / <code>none</code>。<code>none</code> 用于只采集不动作的观察期规则。</td></tr>
+      <tr><td><code>act.target</code></td><td>string</td><td class="opt">选填</td><td><code>self</code> / <code>parent(n)</code> / <code>sibling(n)</code>，默认 <code>self</code>。上溯最多 3 层。</td></tr>
+      <tr><td><code>act.waitMs</code></td><td>int</td><td class="opt">选填</td><td>动作执行后等待毫秒，默认 <code>0</code>。</td></tr>
+      <tr><td><code>act.verify</code></td><td>enum</td><td class="opt">选填</td><td>动作后如何判定成功：<code>windowChanged</code> / <code>nodeGone</code> / <code>both</code>，默认 <code>windowChanged</code>。</td></tr>
+      <tr><td><code>guard.cooldownMs</code></td><td>int</td><td class="opt">选填</td><td>同一规则的最小触发间隔，默认 <code>1500</code>。</td></tr>
+      <tr><td><code>guard.maxPerSession</code></td><td>int</td><td class="opt">选填</td><td>单次前台会话最多执行次数，默认 <code>1</code>。</td></tr>
+      <tr><td><code>guard.maxPerDay</code></td><td>int</td><td class="opt">选填</td><td>单日上限，默认 <code>24</code>。超过即静默停用并上报。</td></tr>
+      <tr><td><code>guard.requireForeground</code></td><td>bool</td><td class="opt">选填</td><td>执行前必须确认前台包名等于规则包名，默认 <code>true</code>，不要关。</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>匹配选择器</h3>
+  <div class="scroll-x">
+  <table class="tbl">
+    <colgroup><col style="width:20%"><col style="width:12%"><col style="width:9%"><col style="width:59%"></colgroup>
+    <thead><tr><th>键</th><th>类型</th><th>约束</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><code>any</code></td><td>selector[]</td><td class="req">必填</td><td>至少一条，任一命中即视为匹配。按数组顺序求值，先命中先返回。</td></tr>
+      <tr><td><code>all</code></td><td>selector[]</td><td class="opt">选填</td><td>全部满足才执行。典型用法：用 <code>maxArea</code> 排除整屏可点容器。</td></tr>
+      <tr><td><code>t</code></td><td>string</td><td class="opt">选填</td><td>文本正则，<b>必须 ^...$ 全量锚定</b>。裸关键词会命中“跳过并领取会员”。</td></tr>
+      <tr><td><code>rid</code></td><td>string</td><td class="opt">选填</td><td>resource-id，支持 <code>*:id/splash_skip</code> 与 <code>close_*</code> 两种通配写法。</td></tr>
+      <tr><td><code>cls</code></td><td>string</td><td class="opt">选填</td><td>类名，支持 <code>|</code> 并列与后缀通配。用来区分图标按钮与文字按钮。</td></tr>
+      <tr><td><code>desc</code></td><td>string</td><td class="opt">选填</td><td>contentDescription。无文字的无障碍友好按钮常靠它命中。</td></tr>
+      <tr><td><code>depth</code></td><td>[int,int]</td><td class="opt">选填</td><td>相对窗口根的层级闭区间，如 <code>[2,8]</code>。收窄遍历范围，省电。</td></tr>
+      <tr><td><code>maxArea</code></td><td>int</td><td class="opt">选填</td><td>节点面积上限（dp²）。开屏跳过按钮通常 <code>&lt; 6000</code>，超过基本是全屏蒙层。</td></tr>
+      <tr><td><code>within</code></td><td>string</td><td class="opt">选填</td><td>距屏幕某边的最大距离，如 <code>"top:200"</code>、<code>"right:120"</code>。跳过按钮几乎总在右上角。</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>三条真实规则</h3>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" aria-controls="p1" id="t1">开屏跳过</button>
+    <button class="tab" role="tab" aria-selected="false" aria-controls="p2" id="t2">插屏关闭（带兜底）</button>
+    <button class="tab" role="tab" aria-selected="false" aria-controls="p3" id="t3">跳转落地页浮层</button>
+  </div>
+
+  <div class="pane" id="p1" role="tabpanel" aria-labelledby="t1">
+  <div class="code">
+    <div class="code-head"><span>com.zhihu.android/splash.json5</span><span>scene = splash</span></div>
+<pre>{
+  schema: 3,
+  id: "com.zhihu.android/splash-01",
+  pkg: "com.zhihu.android",
+  name: "知乎 · 开屏跳过",
+  rev: 7,
+  ver: "&gt;=8.2.0 &lt;10.0.0",
+  scene: "splash",
+
+  when: {
+    activity: ["*.SplashActivity", "*.activity.WelcomeActivity"],
+    elapsedMax: 6000,      <span class="cm">// 只在这 6 秒里管，超时放手</span>
+    stayMs: 150,
+  },
+
+  match: {
+    any: [
+      { t: "^跳过\\s*\\d*$", cls: "TextView|Button", within: "top:200" },
+      { rid: "*:id/splash_skip" },
+    ],
+    all: [
+      { maxArea: 6000 },     <span class="cm">// 排除整屏可点蒙层，防止误点进落地页</span>
+    ],
+  },
+
+  act: { type: "click", target: "self", verify: "windowChanged" },
+  guard: { cooldownMs: 1500, maxPerSession: 1 },
+  tags: ["social"],
+}</pre>
+  </div>
+  </div>
+
+  <div class="pane" id="p2" role="tabpanel" aria-labelledby="t2" hidden>
+  <div class="code">
+    <div class="code-head"><span>com.example.news/interstitial.json5</span><span>scene = interstitial</span></div>
+<pre>{
+  schema: 3,
+  id: "com.example.news/interstitial-02",
+  pkg: "com.example.news",
+  name: "资讯 · 插屏关闭",
+  rev: 3,
+  ver: "&gt;=6.4.0",
+  scene: "interstitial",
+
+  when: { activity: ["*.MainActivity"], stayMs: 300 },
+
+  match: {
+    any: [
+      { t: "^关闭|跳过$", cls: "ImageView|TextView", maxArea: 3600 },
+      { rid: "*:id/interstitial_close" },
+    ],
+  },
+
+  act: {
+    type: "click",
+    target: "parent(1)",   <span class="cm">// 图标本身不可点，上溯一层找容器</span>
+    waitMs: 800,
+    verify: "both",        <span class="cm">// 窗口切走 + 节点消失，双条件才算成功</span>
+  },
+  guard: { maxPerSession: 3, maxPerDay: 12 },
+}</pre>
+  </div>
+  </div>
+
+  <div class="pane" id="p3" role="tabpanel" aria-labelledby="t3" hidden>
+  <div class="code">
+    <div class="code-head"><span>_shared/jump-guard.json5</span><span>scene = jumpGuard，pkg 通配</span></div>
+<pre>{
+  schema: 3,
+  id: "_shared/jump-guard-01",
+  pkg: "*",                  <span class="cm">// 仅 jumpGuard 允许通配</span>
+  name: "落地页 · 拉起浮层关闭",
+  rev: 5,
+  ver: "*",
+  scene: "jumpGuard",
+
+  when: {
+    activity: ["*"],
+    pkgSwitchWithin: 800,    <span class="cm">// 前台包名刚换过，才可能是广告落地页</span>
+  },
+
+  match: {
+    any: [
+      { t: "^打开.{0,6}(APP|App|应用)", maxArea: 40000, within: "bottom:600" },
+      { t: "^取消|以后再说|暂不", cls: "TextView|Button", maxArea: 20000 },
+    ],
+    all: [{ maxArea: 120000 }],
+  },
+
+  act: { type: "click", target: "self", waitMs: 300, verify: "both" },
+  guard: { cooldownMs: 5000, maxPerSession: 2 },
+  tags: ["guard"],
+}</pre>
+  </div>
+  </div>
+
+  <h3>求值规则（引擎侧硬编码，规则不能覆盖）</h3>
+  <ul class="list">
+    <li><b>多命中的排序：</b><code style="font-family:var(--mono)">rid</code> 精确命中优先，其后依次是文本正则、<code style="font-family:var(--mono)">desc</code>、<code style="font-family:var(--mono)">cls</code>；同级别取面积最小、离指定边最近者。</li>
+    <li><b>只认可见节点：</b>要求 <code style="font-family:var(--mono)">isVisibleToUser</code> 且 <code style="font-family:var(--mono)">enabled</code>。节点不可点时上溯最近的可点击祖先，最多 3 层，仍不可点则放弃。</li>
+    <li><b>只求值一次：</b>事件到达后单次求值，不轮询、不重试。未命中也记一条 negative 样本，作为规则优化的输入。</li>
+    <li><b>敏感词复核：</b>命中节点文案含“同意 / 授权 / 允许 / 支付 / 确认 / 绑定 / 登录”一律放弃。这条比任何规则优先级都高。</li>
+    <li><b>白名单优先于一切：</b>金融、支付、政务、系统设置类包名在引擎层硬编码，规则里写什么都点不进去。</li>
+  </ul>
+
+  <div class="callout">
+    <b>为什么是 JSON5 而不是 protobuf / 二进制：</b>规则要能被社区写、被人肉 review、被 diff 看出改了什么。体积差几十 KB，换来的是可协作——这笔账在规则库这个场景里划算得离谱。
+  </div>
+
+  <h3>订阅包与校验</h3>
+  <div class="code">
+    <div class="code-head"><span>public-stable.json5</span><span>客户端只读、只验签</span></div>
+<pre>{
+  schema: 3,
+  subId: "public-stable",
+  name: "公共规则库 · 稳定版",
+  ver: 2026110601,          <span class="cm">// 日期 + 当日序号</span>
+  channel: "stable",        <span class="cm">// stable | beta</span>
+  minClient: 10000,         <span class="cm">// 低于此 versionCode 的客户端不下发</span>
+  rules:   [ "com.zhihu.android/splash-01", "com.example.news/interstitial-02" ],
+  removed: [ "com.foo.bar/splash-03" ],
+  sig: "ed25519:9f2c...",   <span class="cm">// 对除 sig 外的全部内容签名</span>
+}</pre>
+  </div>
+
+  <p class="note" style="margin-top:14px">客户端拿到订阅包后的顺序固定为：<strong>验签 → schema 版本检查 → 逐条跑 ruleCheck → 与本地白名单做冲突检测 → 原子替换</strong>。新版本先写临时目录，全部通过才切换指针，任何一步失败保留旧版本并记录失败原因。这条链路决定了“规则推错一次会不会把用户搞崩”。</p>
+
+  <div class="code">
+    <div class="code-head"><span>规则校验器</span><span>CI 门禁</span></div>
+<pre>./gradlew ruleCheck -Ppkg=com.zhihu.android -Pstrict
+
+<span class="cm"># 四类失败：</span>
+<span class="cm">#  1. 字段缺失 / 类型不符 / schema 版本不匹配</span>
+<span class="cm">#  2. 正则未全量锚定，或存在灾难性回溯风险（嵌套量词）</span>
+<span class="cm">#  3. ver 区间与 pkg 实际版本对不上</span>
+<span class="cm">#  4. 同一 Activity 下两条规则的 match 相交（会互抢点击）</span>
+<span class="cm"># strict 模式下任一失败即拒绝构建，不允许带病进订阅包。</span></pre>
+  </div>
+</section>
+
+<!-- ================= 排期 ================= -->
+<section id="plan">
+  <div class="sec-head">
+    <h2>排期：W0 门控 + 十周</h2>
+    <span class="count">单人 · 每周一个可验收产物</span>
+  </div>
+
+  <p class="note">排期的唯一原则是<strong>每周结束时手上有一个能被验证的东西</strong>，而不是“完成了百分之多少”。规则引擎这类产品最容易死在“写了两周还没法在真机上跑”上，所以第一周就必须产出可用的节点树调试器。</p>
+
+  <div class="w0box">
+    <div class="wt">W0 · 前置验证周 —— W1 之前，5–10 天，不写功能代码</div>
+    <p>十周排期成立的前提只有两条：开屏窗口在主流 ROM 上能被稳定识别，一条规则能端到端跑通。这两个假设不成立，后面九周的引擎与订阅链路都没有落点。所以先花一周做门控，用真机数据决定要不要开这个工。</p>
+    <p style="margin-top:10px">四个动作，一个串行、三个并行：</p>
+    <ul class="list" style="margin-top:8px">
+      <li><b>P0 真机 PoC（串行，5–10 天）。</b>8–10 台机器（澎湃、ColorOS、OriginOS、原生 Android 各至少 2 台）× 10 个目标 App，每台冷启动 10 次，只记三件事：窗口事件能否捕获且能判定归属包名、从事件到点击的耗时、点击是否落到预期目标。产出是一页 PoC 报告，不是代码。</li>
+      <li><b>P1 主体与分发决策（并行，3 天）。</b>个人主体开源免费 / 注册公司收订阅 / 海外主体，三选一。它决定 W5 要不要接支付、W10 上哪个商店，拖到后面每改一次都是返工。</li>
+      <li><b>P2 规则冷启动清单（并行，3 天）。</b>按开屏广告出现率从高到低选 10 个目标 App，每条规则配一个回归用例（版本号 + 截图 + 期望动作）。W4 的“20 条规则”就从这份清单长出来，不是临时凑的。</li>
+      <li><b>P3 法务与命名口径（并行，3 天）。</b>开源协议（建议 Apache-2.0，不要 GPL 系）、隐私政策里的无障碍用途与“屏幕内容不出设备”声明、名称里不出现“跳过广告”这类功能性描述。</li>
+    </ul>
+
+    <div class="scroll-x" style="margin-top:16px">
+    <table class="tbl">
+      <colgroup><col style="width:30%"><col style="width:26%"><col style="width:44%"></colgroup>
+      <thead><tr><th>门控项</th><th>阈值</th><th>不达标怎么办</th></tr></thead>
+      <tbody>
+        <tr><td>开屏窗口识别率</td><td>≥ 90%，且至少 6 台机型达标</td><td>先收缩机型范围，或换识别策略（窗口事件 + Activity 生命周期兜底）</td></tr>
+        <tr><td>单次处理耗时</td><td>P95 &lt; 300ms</td><td>把遍历预算压下来再进 W3，不要带病往下走</td></tr>
+        <tr><td>误点次数</td><td>100 次冷启动中 0 次</td><td>未收敛前不加任何新规则，只留点击后校验</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="callout">
+    <b>W0 的止损线。</b>若两家以上主流 ROM 都做不到“稳定捕获 + 准确归属”，且 Shizuku 通道同样受限，就不要硬推：产品降级为「误触防护 + 广告体检」两条腿，去广告改成一键手动跳过。这两条都不依赖点击注入，也不依赖窗口归属。方案 B 能砍掉 W3–W5 的大部分工作量，把 W7、W8 提前，v1.0 的目标从“自动跳过”改成“广告合规体检 + 误触兜底”。
+  </div>
+
+  <div class="scroll-x gantt-box">
+    <div class="gantt">
+      <div class="gantt-head">
+        <div class="gh" style="border-left:0;color:var(--ink2);text-align:left;padding-left:12px">工作流 / 周次</div>
+        <div class="gh w0">W0</div>
+        <div class="gh">W1</div>
+        <div class="gh">W2<span class="ms"></span></div>
+        <div class="gh">W3</div>
+        <div class="gh">W4<span class="ms"></span></div>
+        <div class="gh">W5</div>
+        <div class="gh">W6</div>
+        <div class="gh">W7</div>
+        <div class="gh">W8<span class="ms"></span></div>
+        <div class="gh">W9</div>
+        <div class="gh">W10<span class="ms"></span></div>
+      </div>
+      <div class="gl" aria-hidden="true">
+        <div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+      </div>
+      <div class="grow gate"><div class="glabel">W0 真机 PoC（门控）</div><div class="gbar" style="grid-column:2 / span 1"></div><span class="gspan">W0</span></div>
+      <div class="grow"><div class="glabel">W0 主体/规则/法务（并行）</div><div class="gbar ghost" style="grid-column:2 / span 1"></div><span class="gspan">W0</span></div>
+      <div class="grow"><div class="glabel">采集基座与调试器</div><div class="gbar" style="grid-column:3 / span 2"></div><span class="gspan">W1–W2</span></div>
+      <div class="grow"><div class="glabel">规则解析 / 匹配 / 动作</div><div class="gbar" style="grid-column:4 / span 3"></div><span class="gspan">W2–W4</span></div>
+      <div class="grow"><div class="glabel">安全闸门与授权界面</div><div class="gbar" style="grid-column:6 / span 2"></div><span class="gspan">W4–W5</span></div>
+      <div class="grow"><div class="glabel">云订阅与遥测</div><div class="gbar" style="grid-column:7 / span 2"></div><span class="gspan">W5–W6</span></div>
+      <div class="grow"><div class="glabel">误触防护</div><div class="gbar" style="grid-column:9 / span 1"></div><span class="gspan">W7</span></div>
+      <div class="grow"><div class="glabel">广告体检报告</div><div class="gbar" style="grid-column:10 / span 1"></div><span class="gspan">W8</span></div>
+      <div class="grow"><div class="glabel">稳定性与功耗</div><div class="gbar" style="grid-column:11 / span 1"></div><span class="gspan">W9</span></div>
+      <div class="grow"><div class="glabel">合规、备案与分发</div><div class="gbar" style="grid-column:11 / span 2"></div><span class="gspan">W9–W10</span></div>
+      <div class="grow"><div class="glabel">灰度与 v1.0 发布</div><div class="gbar" style="grid-column:12 / span 1"></div><span class="gspan">W10</span></div>
+    </div>
+  </div>
+  <div class="legend">
+    <span><i class="sw"></i>工作区间</span>
+    <span><i class="gw"></i>W0 并行决策</span>
+    <span><i class="dm"></i>M1 端到端跑通 · W2</span>
+    <span><i class="dm"></i>M2 二十条规则上线 · W4</span>
+    <span><i class="dm"></i>M3 体检报告可用 · W8</span>
+    <span><i class="dm"></i>M4 v1.0 发布 · W10</span>
+  </div>
+
+  <h3>逐周验收表</h3>
+  <div class="scroll-x">
+  <table class="tbl">
+    <colgroup><col style="width:10%"><col style="width:22%"><col style="width:34%"><col style="width:34%"></colgroup>
+    <thead><tr><th>周</th><th>主线</th><th>交付物</th><th>验收标准</th></tr></thead>
+    <tbody>
+      <tr><td>W0</td><td>前置验证（门控）</td><td>一页 PoC 报告（识别率 / 耗时 / 误点计数）；主体与分发决策；10 个冷启动目标及回归用例；协议与命名口径</td><td>识别率 ≥ 90% 且 6 台机型达标、P95 &lt; 300ms、100 次冷启动误点 0 次；三项全过才开 W1</td></tr>
+      <tr><td>W1</td><td>采集基座</td><td>无障碍服务骨架；节点树导出工具；桌面侧快照查看器（节点树叠加坐标与面积）</td><td>在 3 个不同厂商的 App 上导出的节点树，与实际屏幕逐节点对齐</td></tr>
+      <tr><td>W2</td><td>引擎 v0</td><td>JSON5 解析、schema 校验、单规则匹配与点击、结果落库</td><td>手写一条规则，在真机上成功跳过 1 个 App 的开屏（M1）</td></tr>
+      <tr><td>W3</td><td>匹配与动作</td><td>完整选择器求值、多命中排序、可点击祖先上溯、冷却、verify 校验</td><td>10 条规则连续 3 天命中率 ≥ 90%，零次误点进落地页</td></tr>
+      <tr><td>W4</td><td>安全闸门</td><td>前台包名校验、白名单、敏感词表、单应用授权开关、首次引导流程</td><td>20 条规则上线；5 个银行/支付类 App 全部无法被接管（M2）</td></tr>
+      <tr><td>W5</td><td>云订阅</td><td>CDN 分发、Ed25519 验签、stable/beta 双通道、原子替换与回滚、ruleCheck CI</td><td>故意推一版错误规则，能在 10 分钟内回滚且客户端不崩</td></tr>
+      <tr><td>W6</td><td>遥测</td><td>本地聚合、匿名上报、命中率看板、失效自动降级</td><td>可按包名/规则/宿主版本三维查命中率；抓包确认上报内容不含任何屏幕文本</td></tr>
+      <tr><td>W7</td><td>误触防护</td><td>包名跳变检测、悬浮确认条、一键返回、_shared 通配规则</td><td>模拟 5 种拉起场景，拦截成功 ≥ 80%，误拦低于 1/50 次</td></tr>
+      <tr><td>W8</td><td>体检报告</td><td>五项检测（关闭按钮面积与对比度、倒计时长度、假关闭、二次弹窗、摇一摇阈值）与举报入口</td><td>对 10 个 App 出具报告，每条结论都能被人对着屏幕复核（M3）</td></tr>
+      <tr><td>W9</td><td>稳定性</td><td>遍历预算、低电模式、异常自恢复、后台被杀拉活策略</td><td>48 小时挂机不崩；单次遍历 CPU &lt; 15ms；待机日耗电 &lt; 2%</td></tr>
+      <tr><td>W10</td><td>合规与发布</td><td>APP 备案、隐私政策、开源仓库、官网、签名与更新通道、500 人灰度</td><td>完成备案与送审；灰度期崩溃率 &lt; 0.2%，规则命中率 ≥ 85%（M4）</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>v1.0 的验收指标</h3>
+  <div class="scroll-x">
+  <table class="tbl">
+    <colgroup><col style="width:30%"><col style="width:20%"><col style="width:50%"></colgroup>
+    <thead><tr><th>指标</th><th>目标</th><th>采集方式</th></tr></thead>
+    <tbody>
+      <tr><td>Top 20 应用规则命中率</td><td>≥ 85%</td><td>遥测的 positive / (positive + negative)</td></tr>
+      <tr><td>误触率（点了不该点的）</td><td>&lt; 0.5%</td><td>verify 失败回滚计数 + 用户反馈</td></tr>
+      <tr><td>崩溃率</td><td>&lt; 0.2%</td><td>崩溃平台</td></tr>
+      <tr><td>冷启动额外耗时</td><td>&lt; 80ms</td><td>引擎埋点，只在冷启动首次统计</td></tr>
+      <tr><td>规则平均失效修复时长</td><td>&lt; 72h</td><td>从失败率告警到新规则上线</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>三个会影响排期的风险</h3>
+  <ul class="list">
+    <li><b>无障碍被系统收紧。</b>ColorOS、澎湃等已经把“受限制的设置”做进系统，用户授权多两层。对策：把 Shizuku 做成第二通道并在引导里讲清楚，<b>不做任何对抗</b>——对抗一次，下个版本就会被封死。</li>
+    <li><b>规则维护是长期成本，不是开发工作量。</b>宿主 App 一次改版就能让规则全废。对策：W5 就要把失败率驱动的失效告警跑通，否则后面靠人工发现，永远慢半拍。</li>
+    <li><b>合规成本会挤占 W10。</b>APP 备案、隐私政策、开源仓库、送审都是硬门槛，草稿要在 W8 就开始准备，不要压到最后一周。</li>
+  </ul>
+
+  <div class="callout">
+    <b>排期上最该砍的：</b>体检报告的第二、三期功能，以及规则市场（UGC 规则分享）。前者是营收故事，后者是社区故事，都不影响 v1.0 能不能站住。如果时间不够，优先保 W1–W5 的引擎与订阅链路——那是这个产品唯一不可替代的部分。
+  </div>
+</section>
+
+<div class="footer">
+  <span>开屏净化助手 · 技术方案 v1.0</span>
+  <span>适用于 Android 12+ 单端</span>
+  <span>2026-11-06</span>
+  <span>本文为工程方案，不含法律意见</span>
+</div>
+
+</div>
+
+<script>
+(function () {
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+  function select(tab) {
+    tabs.forEach(function (t) {
+      var on = t === tab;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      var pane = document.getElementById(t.getAttribute('aria-controls'));
+      if (pane) { pane.hidden = !on; }
+    });
+  }
+  tabs.forEach(function (tab, i) {
+    tab.addEventListener('click', function () { select(tab); });
+    tab.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        e.preventDefault();
+        var next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+        next.focus();
+        select(next);
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>

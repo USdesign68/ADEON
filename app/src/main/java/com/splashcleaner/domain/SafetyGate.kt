@@ -20,6 +20,8 @@ object SafetyGate {
         if (isProtectedPackage(eventPackage)) return false
         if (!node.visible || !node.enabled) return false
         if (containsSensitiveText(node.text) || containsSensitiveText(node.contentDescription)) return false
+        // A click must target an explicitly clickable node. Back is a separate action path.
+        if (rule.action == "click" && !node.clickable) return false
         return rule.action == "click" || rule.action == "back"
     }
 }

@@ -71,7 +71,9 @@ class AdAccessibilityService : AccessibilityService() {
             if (root.packageName?.toString() != pkg) return
             val metrics = resources.displayMetrics
             val captureStartedAt = System.currentTimeMillis()
-            val snapshot = collector.collect(root, pkg, event.className?.toString(), launchStartedAt,
+            // AccessibilityEvent.className is the event source view class, not a reliable Activity name.
+            // Keep it unknown: activity-specific rules must not match on guessed metadata.
+            val snapshot = collector.collect(root, pkg, null, launchStartedAt,
                 metrics.widthPixels, metrics.heightPixels)
 
             // Match only in memory. Neither node text nor selector values are persisted.

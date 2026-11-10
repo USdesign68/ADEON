@@ -73,4 +73,18 @@ class RuleEngineTest {
         assertEquals(listOf(0), engine.candidates(rule, snapshot, 1f).map { it.index })
         assertTrue(engine.candidates(rule, snapshot.copy(packageName = "com.other.app"), 1f).isEmpty())
     }
+
+    @Test fun activitySpecificRuleDoesNotMatchWhenActivityIsUnknown() {
+        val rule = AdRule(
+            id = "demo/activity", packageName = "com.example.demo", name = "activity scoped",
+            revision = 1, versionConstraint = "*", scene = Scene.splash,
+            activities = listOf("*.SplashActivity"),
+            any = listOf(RuleSelector(resourceId = "*:id/close"))
+        )
+        val node = NodeSnapshot(0, null, "Button", "com.example.demo:id/close", null, null,
+            true, true, true, 0, 0, 24, 24, 0)
+        val snapshot = WindowSnapshot("com.example.demo", null, 1L, listOf(node), false, 500L)
+
+        assertTrue(RuleEngine().candidates(rule, snapshot, 1f).isEmpty())
+    }
 }

@@ -193,7 +193,7 @@ private fun SplashCleanerApp() {
                     Text("本地采集记录", fontWeight = FontWeight.SemiBold, color = Ink)
                     Text("最近 ${records.size} 条 · 最多显示 20 条 · 自动保留 7 天", color = Muted, style = MaterialTheme.typography.bodySmall)
                     Text("只保存应用包名哈希、采集结果、耗时和时间；不保存屏幕文字、控件描述或窗口内容。", color = Muted, style = MaterialTheme.typography.bodySmall)
-                    Text("“已采集”只表示窗口节点采集成功，不代表已识别出广告。当前版本尚未接入规则匹配。", color = Ink, style = MaterialTheme.typography.bodySmall)
+                    Text("规则匹配仅在本机内存中执行；命中只作为诊断，不会触发点击或返回动作。屏幕文本和控件信息不会保存。", color = Ink, style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
@@ -212,11 +212,12 @@ private fun SplashCleanerApp() {
                     Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                when (item.result) { "captured" -> "窗口已采集"; "opaque_skipped" -> "疑似自绘窗口，已跳过"; else -> "诊断事件" },
+                                when (item.result) { "captured" -> "窗口已采集"; "opaque_skipped" -> "疑似自绘窗口，已跳过"; "rule_matched" -> "规则命中（仅诊断）"; "no_match" -> "窗口已采集 · 未命中规则"; "no_rules" -> "窗口已采集 · 尚无规则"; "rules_unavailable" -> "规则包不可用"; else -> "诊断事件" },
                                 color = Ink, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f)
                             )
                             Text(dateFormat.format(java.util.Date(item.occurredAt)), color = Muted, style = MaterialTheme.typography.labelSmall)
                         }
+                        Text("规则诊断：${item.ruleId}", color = Muted, style = MaterialTheme.typography.bodySmall)
                         Text("应用标识：${item.packageHash}", color = Muted, style = MaterialTheme.typography.bodySmall)
                         Text("采集耗时：${item.costMs} ms", color = Muted, style = MaterialTheme.typography.bodySmall)
                     }

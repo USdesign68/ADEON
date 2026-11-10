@@ -2,7 +2,6 @@ package com.splashcleaner.service
 
 import android.accessibilityservice.AccessibilityService
 import android.view.accessibility.AccessibilityEvent
-import com.splashcleaner.data.HitEntity
 import com.splashcleaner.data.LocalDatabase
 import com.splashcleaner.domain.AdRule
 import com.splashcleaner.domain.RuleEngine
@@ -13,14 +12,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import java.security.MessageDigest
 
-/**
- * Collection-only baseline. Diagnostics contain metadata only; window text and descriptions are
- * transient in memory. Automatic actions and ad-rule recognition remain disconnected.
- */
-class AdAccessibilityService : AccessibilityService() {
-    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val collector = WindowTreeCollector()
-    private val diagnosticThrottle = mutableMapOf<String, Long>()
 /** Local matching diagnostics only. Rule matches never trigger actions in this build. */
 class AdAccessibilityService : AccessibilityService() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -59,43 +50,26 @@ class AdAccessibilityService : AccessibilityService() {
             event.eventType != AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) return
         val pkg = event.packageName?.toString() ?: return
 
-        // Keep the launch clock tied to the current foreground package, not service uptime.
-        if (pkg != foregroundPackage) {
+        // Start the rule clock when a different app enters the foreground. Service uptime is not
+        // a valid proxy: the accessibility service can remain connected for hours before launch.
+        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            if (pkg != foregroundPackage) {
+                foregroundPackage = pkg
+                appLaunchStartedAt = System.currentTimeMillis()
+            }
+        } else if (foregroundPackage == null) {
             foregroundPackage = pkg
             appLaunchStartedAt = System.currentTimeMillis()
         }
         val launchStartedAt = appLaunchStartedAt.takeIf { it > 0L } ?: return
 
-        // Per-app opt-in and protected-package checks happen before reading the window tree.
+        // Per-app opt-in is checked before reading the target window tree.
         if (!getSharedPreferences("app_cfg", MODE_PRIVATE).getBoolean(pkg, false)) return
         if (SafetyGate.isProtectedPackage(pkg)) return
-
-        val root = rootInActiveWindow
-        if (root == null) {
-            recordDiagnostic(pkg, "no_active_window")
-            return
-        }
-
+        val root = rootInActiveWindow ?: return
         try {
-            if (root.packageName?.toString() != pkg) {
-                recordDiagnostic(pkg, "package_mismatch")
-                return
-            }
+            if (root.packageName?.toString() != pkg) return
             val metrics = resources.displayMetrics
-            val startedAt = System.currentTimeMillis()
-            val snapshot = collector.collect(
-                root, pkg, event.className?.toString(), launchStartedAt,
-                metrics.widthPixels, metrics.heightPixels
-            )
-            val collectionCostMs = (System.currentTimeMillis() - startedAt).coerceAtLeast(0L)
-
-            // Persist metadata only. The result explicitly says collection-only, not ad recognition.
-            val result = if (snapshot.opaque) {
-                "opaque_skipped"
-            } else {
-                "collected_only;nodes=${snapshot.nodes.size}"
-            }
-            recordDiagnostic(pkg, result, collectionCostMs)
             val captureStartedAt = System.currentTimeMillis()
             // AccessibilityEvent.className is the event source view class, not a reliable Activity name.
             // Keep it unknown: activity-specific rules must not match on guessed metadata.
@@ -141,41 +115,9 @@ class AdAccessibilityService : AccessibilityService() {
             }
             // A match is diagnostic evidence only. No click, back, wait or other action is executed.
         } catch (_: Throwable) {
-            // Keep the accessibility callback resilient and avoid logging exception details.
-            recordDiagnostic(pkg, "collection_error")
+            // Accessibility callbacks must never crash the service.
         } finally {
             runCatching { root.recycle() }
-        }
-    }
-
-    private fun recordDiagnostic(packageName: String, result: String, costMs: Long = 0L) {
-        val now = System.currentTimeMillis()
-        val throttleKey = "$packageName|$result"
-        val shouldRecord = synchronized(diagnosticThrottle) {
-            val last = diagnosticThrottle[throttleKey] ?: 0L
-            if (now - last < DIAGNOSTIC_THROTTLE_MS) {
-                false
-            } else {
-                diagnosticThrottle[throttleKey] = now
-                true
-            }
-        }
-        if (!shouldRecord) return
-
-        serviceScope.launch {
-            runCatching {
-                val dao = LocalDatabase.get(this@AdAccessibilityService).hitDao()
-                dao.insert(
-                    HitEntity(
-                        packageHash = sha256(packageName),
-                        ruleId = DIAGNOSTIC_RULE_ID,
-                        result = result,
-                        costMs = costMs.coerceAtLeast(0L),
-                        occurredAt = now
-                    )
-                )
-                dao.trimDiagnostics()
-            }
         }
     }
 
@@ -186,14 +128,8 @@ class AdAccessibilityService : AccessibilityService() {
     }
 
     override fun onInterrupt() = Unit
+    private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256").digest(value.toByteArray()).take(12).joinToString("") { "%02x".format(it) }
 
-    private fun sha256(value: String): String =
-        MessageDigest.getInstance("SHA-256").digest(value.toByteArray())
-            .take(12).joinToString("") { "%02x".format(it) }
-
-    companion object {
-        private const val DIAGNOSTIC_RULE_ID = "_diagnostic"
-        private const val DIAGNOSTIC_THROTTLE_MS = 1_500L
     companion object {
         private const val LOCAL_RULE_ASSET = "rules/stable.json5"
         private const val DIAGNOSTIC_INTERVAL_MS = 3_000L

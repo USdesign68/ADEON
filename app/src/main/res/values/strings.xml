@@ -1,0 +1,3 @@
+<resources>
+    <string name="accessibility_service_description">仅在你逐个授权的应用内识别广告窗口与关闭控件；屏幕内容仅在本机内存中短暂处理，不上传。</string>
+</resources>

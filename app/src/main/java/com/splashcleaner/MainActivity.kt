@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.splashcleaner.data.AppConfigEntity
 import com.splashcleaner.data.HitEntity
 import com.splashcleaner.data.LocalDatabase
+import com.splashcleaner.data.HitEntity
 import com.splashcleaner.domain.AccessState
 import com.splashcleaner.domain.CheckStatus
 import com.splashcleaner.domain.InspectionCatalog
@@ -64,6 +65,7 @@ private fun SplashCleanerApp() {
     var diagnostics by remember { mutableStateOf(emptyList<HitEntity>()) }
     var selectedCheck by remember { mutableStateOf(InspectionCatalog.checks.first().id) }
     var statuses by remember { mutableStateOf(InspectionCatalog.checks.associate { it.id to CheckStatus.NOT_VERIFIED }) }
+    var diagnosticHits by remember { mutableStateOf(emptyList<HitEntity>()) }
 
     LaunchedEffect(Unit) {
         apps = context.packageManager.getInstalledApplications(0)
@@ -75,6 +77,7 @@ private fun SplashCleanerApp() {
         db.hitDao().observeDiagnostics().collect { diagnostics = it }
     }
     LaunchedEffect(page) { accessState = readAccessState(context) }
+    LaunchedEffect(Unit) { db.hitDao().recent().collect { diagnosticHits = it } }
 
     Scaffold(containerColor = Paper, bottomBar = {
         NavigationBar(containerColor = Panel) {
@@ -87,6 +90,7 @@ private fun SplashCleanerApp() {
                         3 -> Icons.Default.BugReport
                         else -> Icons.Default.Settings
                     }, contentDescription = label)
+                    Icon(when (index) { 0 -> Icons.Default.Home; 1 -> Icons.Default.Apps; 2 -> Icons.Default.FactCheck; 3 -> Icons.Default.BugReport; else -> Icons.Default.Settings }, contentDescription = label)
                 }, label = { Text(label) })
             }
         }
@@ -111,6 +115,7 @@ private fun SplashCleanerApp() {
                 3 -> DiagnosticsScreen(accessState, diagnostics, onClear = {
                     scope.launch(Dispatchers.IO) { db.hitDao().clearDiagnostics() }
                 })
+                3 -> DiagnosticsScreen(diagnosticHits, onClear = { lifecycleScopeLaunch(context) { db.hitDao().clear() } })
                 else -> SettingsScreen(accessState, onEnable = { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) })
             }
         }
@@ -274,6 +279,51 @@ private fun diagnosticLabel(result: String): String = when {
             }
         }
         item { Text("注意：本版本只提供检测项记录界面，未自动执行 OCR、像素对比或点击验证。D-03、D-04、D-05 等人工项目必须实测，不能默认达标。", color = Muted) }
+    }
+}
+
+@Composable private fun DiagnosticsScreen(records: List<HitEntity>, onClear: () -> Unit) {
+    val dateFormat = remember { java.text.SimpleDateFormat("MM-dd HH:mm:ss", java.util.Locale.getDefault()) }
+    LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        item { Text("识别诊断", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Ink) }
+        item {
+            Card(colors = CardDefaults.cardColors(containerColor = Panel)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("本地采集记录", fontWeight = FontWeight.SemiBold, color = Ink)
+                    Text("最近 ${records.size} 条 · 最多显示 20 条 · 自动保留 7 天", color = Muted, style = MaterialTheme.typography.bodySmall)
+                    Text("只保存应用包名哈希、采集结果、耗时和时间；不保存屏幕文字、控件描述或窗口内容。", color = Muted, style = MaterialTheme.typography.bodySmall)
+                    Text("规则匹配仅在本机内存中执行；命中只作为诊断，不会触发点击或返回动作。屏幕文本和控件信息不会保存。", color = Ink, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+        if (records.isEmpty()) {
+            item {
+                Card(colors = CardDefaults.cardColors(containerColor = Panel)) {
+                    Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("暂无采集记录", fontWeight = FontWeight.SemiBold, color = Ink)
+                        Text("请先进入“应用”页面，明确开启一个普通测试应用的授权开关，然后打开该应用并停留几秒。仅开启系统无障碍服务还不够；未逐应用授权时不会读取或记录该应用窗口。", color = Muted)
+                    }
+                }
+            }
+        } else {
+            items(records, key = { it.id }) { item ->
+                Card(colors = CardDefaults.cardColors(containerColor = Panel)) {
+                    Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                when (item.result) { "captured" -> "窗口已采集"; "opaque_skipped" -> "疑似自绘窗口，已跳过"; "rule_matched" -> "规则命中（仅诊断）"; "no_match" -> "窗口已采集 · 未命中规则"; "no_rules" -> "窗口已采集 · 尚无规则"; "rules_unavailable" -> "规则包不可用"; else -> "诊断事件" },
+                                color = Ink, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f)
+                            )
+                            Text(dateFormat.format(java.util.Date(item.occurredAt)), color = Muted, style = MaterialTheme.typography.labelSmall)
+                        }
+                        Text("规则诊断：${item.ruleId}", color = Muted, style = MaterialTheme.typography.bodySmall)
+                        Text("应用标识：${item.packageHash}", color = Muted, style = MaterialTheme.typography.bodySmall)
+                        Text("采集耗时：${item.costMs} ms", color = Muted, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+            item { TextButton(onClick = onClear, modifier = Modifier.fillMaxWidth()) { Text("清空本地诊断记录") } }
+        }
     }
 }
 

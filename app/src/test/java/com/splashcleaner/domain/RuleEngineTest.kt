@@ -50,4 +50,41 @@ class RuleEngineTest {
         assertFalse(SafetyGate.mayAct(rule, "com.example.demo", "com.example.demo", nonClickable))
         assertFalse(SafetyGate.mayAct(rule, "com.example.demo", "com.example.demo", sensitive))
     }
+
+    @Test fun emptySchemaThreePackageIsExplicitlyEmpty() {
+        val rules = RuleEngine().parseRulePackage("{ schema: 3, rules: [] }")
+        assertTrue(rules.isEmpty())
+    }
+
+    @Test fun candidatesOnlyIncludeVisibleEnabledNodesForMatchingPackage() {
+        val rule = AdRule(
+            id = "demo/close", packageName = "com.example.demo", name = "demo close", revision = 1,
+            versionConstraint = "*", scene = Scene.splash, activities = listOf("*"),
+            any = listOf(RuleSelector(resourceId = "*:id/close"))
+        )
+        val visible = NodeSnapshot(0, null, "Button", "com.example.demo:id/close", null, null,
+            true, true, true, 0, 0, 24, 24, 0)
+        val hidden = visible.copy(index = 1, visible = false)
+        val disabled = visible.copy(index = 2, enabled = false)
+        val snapshot = WindowSnapshot("com.example.demo", "SplashActivity", 1L,
+            listOf(visible, hidden, disabled), false, 500L)
+        val engine = RuleEngine()
+
+        assertEquals(listOf(0), engine.candidates(rule, snapshot, 1f).map { it.index })
+        assertTrue(engine.candidates(rule, snapshot.copy(packageName = "com.other.app"), 1f).isEmpty())
+    }
+
+    @Test fun activitySpecificRuleDoesNotMatchWhenActivityIsUnknown() {
+        val rule = AdRule(
+            id = "demo/activity", packageName = "com.example.demo", name = "activity scoped",
+            revision = 1, versionConstraint = "*", scene = Scene.splash,
+            activities = listOf("*.SplashActivity"),
+            any = listOf(RuleSelector(resourceId = "*:id/close"))
+        )
+        val node = NodeSnapshot(0, null, "Button", "com.example.demo:id/close", null, null,
+            true, true, true, 0, 0, 24, 24, 0)
+        val snapshot = WindowSnapshot("com.example.demo", null, 1L, listOf(node), false, 500L)
+
+        assertTrue(RuleEngine().candidates(rule, snapshot, 1f).isEmpty())
+    }
 }

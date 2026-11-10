@@ -26,7 +26,6 @@ import androidx.compose.ui.unit.dp
 import com.splashcleaner.data.AppConfigEntity
 import com.splashcleaner.data.HitEntity
 import com.splashcleaner.data.LocalDatabase
-import com.splashcleaner.data.HitEntity
 import com.splashcleaner.domain.AccessState
 import com.splashcleaner.domain.CheckStatus
 import com.splashcleaner.domain.InspectionCatalog
@@ -65,7 +64,6 @@ private fun SplashCleanerApp() {
     var diagnostics by remember { mutableStateOf(emptyList<HitEntity>()) }
     var selectedCheck by remember { mutableStateOf(InspectionCatalog.checks.first().id) }
     var statuses by remember { mutableStateOf(InspectionCatalog.checks.associate { it.id to CheckStatus.NOT_VERIFIED }) }
-    var diagnosticHits by remember { mutableStateOf(emptyList<HitEntity>()) }
 
     LaunchedEffect(Unit) {
         apps = context.packageManager.getInstalledApplications(0)
@@ -77,7 +75,6 @@ private fun SplashCleanerApp() {
         db.hitDao().observeDiagnostics().collect { diagnostics = it }
     }
     LaunchedEffect(page) { accessState = readAccessState(context) }
-    LaunchedEffect(Unit) { db.hitDao().recent().collect { diagnosticHits = it } }
 
     Scaffold(containerColor = Paper, bottomBar = {
         NavigationBar(containerColor = Panel) {
@@ -115,7 +112,6 @@ private fun SplashCleanerApp() {
                 3 -> DiagnosticsScreen(accessState, diagnostics, onClear = {
                     scope.launch(Dispatchers.IO) { db.hitDao().clearDiagnostics() }
                 })
-                3 -> DiagnosticsScreen(diagnosticHits, onClear = { lifecycleScopeLaunch(context) { db.hitDao().clear() } })
                 else -> SettingsScreen(accessState, onEnable = { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) })
             }
         }
@@ -197,8 +193,8 @@ private fun SplashCleanerApp() {
             Card(colors = CardDefaults.cardColors(containerColor = Panel)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("无障碍服务：${state.label()}", fontWeight = FontWeight.SemiBold, color = if (state == AccessState.AVAILABLE) Accent else Ink)
-                    Text("当前仅记录窗口树采集诊断，不执行广告规则匹配或自动点击。", color = Muted, style = MaterialTheme.typography.bodySmall)
-                    Text("只保存匿名应用标识、采集结果、节点数量、耗时和时间；不保存屏幕文字、控件描述或截图。", color = Muted, style = MaterialTheme.typography.bodySmall)
+                    Text("本地规则匹配仅作为诊断记录，不执行点击、返回或其他自动动作。", color = Muted, style = MaterialTheme.typography.bodySmall)
+                    Text("只保存应用哈希、规则编号或诊断结果、耗时和时间；不保存屏幕文字、控件描述、资源 ID 或窗口内容。", color = Muted, style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
@@ -247,13 +243,16 @@ private fun SplashCleanerApp() {
     }
 }
 
-private fun diagnosticLabel(result: String): String = when {
-    result.startsWith("collected_only") -> "窗口采集完成（非广告识别）"
-    result == "opaque_skipped" -> "窗口疑似自绘/不透明，已跳过"
-    result == "no_active_window" -> "当前没有可采集窗口"
-    result == "package_mismatch" -> "窗口应用包名不一致，已跳过"
-    result == "collection_error" -> "采集过程异常"
-    else -> "其他诊断事件"
+private fun diagnosticLabel(result: String): String = when (result) {
+    "rule_matched" -> "规则命中（仅诊断，不执行动作）"
+    "no_match" -> "窗口已采集 · 未命中规则"
+    "no_rules" -> "窗口已采集 · 尚无可用规则"
+    "rules_unavailable" -> "规则包不可用"
+    "opaque_skipped" -> "窗口疑似自绘/不透明，已跳过"
+    "no_active_window" -> "当前没有可采集窗口"
+    "package_mismatch" -> "窗口应用包名不一致，已跳过"
+    "collection_error" -> "采集过程异常"
+    else -> if (result.startsWith("collected_only")) "窗口采集完成（非广告识别）" else "其他诊断事件"
 }
 
 @Composable private fun InspectionScreen(selected: String, onSelect: (String) -> Unit, statuses: Map<String, CheckStatus>, onStatus: (String, CheckStatus) -> Unit) {

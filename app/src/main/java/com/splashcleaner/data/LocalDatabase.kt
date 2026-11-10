@@ -59,8 +59,8 @@ data class RulePackageEntity(
 @Dao interface HitDao {
     @Insert suspend fun insert(item: HitEntity)
     @Query("SELECT * FROM hit ORDER BY occurredAt DESC LIMIT 20") fun recent(): Flow<List<HitEntity>>
-    @Query("SELECT * FROM hit WHERE ruleId = '_diagnostic' ORDER BY occurredAt DESC LIMIT 100") fun observeDiagnostics(): Flow<List<HitEntity>>
-    @Query("DELETE FROM hit WHERE ruleId = '_diagnostic'") suspend fun clearDiagnostics()
+    @Query("SELECT * FROM hit ORDER BY occurredAt DESC LIMIT 100") fun observeDiagnostics(): Flow<List<HitEntity>>
+    @Query("DELETE FROM hit") suspend fun clearDiagnostics()
     @Query("DELETE FROM hit WHERE ruleId = '_diagnostic' AND id NOT IN (SELECT id FROM hit WHERE ruleId = '_diagnostic' ORDER BY occurredAt DESC LIMIT 100)") suspend fun trimDiagnostics()
     @Query("DELETE FROM hit WHERE occurredAt < :cutoff") suspend fun deleteBefore(cutoff: Long)
     @Query("DELETE FROM hit") suspend fun clear()

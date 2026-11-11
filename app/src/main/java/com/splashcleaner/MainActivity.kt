@@ -243,7 +243,30 @@ private fun SplashCleanerApp() {
     }
 }
 
-private fun diagnosticLabel(result: String): String = when (result) {
+private fun diagnosticLabel(result: String): String {
+    if (result.startsWith("weibo_")) {
+        val payload = result.removePrefix("weibo_")
+        val rule = listOf("rule_matched", "no_match", "no_rules", "rules_unavailable", "opaque_skipped")
+            .firstOrNull { payload.endsWith("_$it") }
+        val feature = rule?.let { payload.removeSuffix("_$it") } ?: "indeterminate"
+        val accessLabel = when (feature) {
+            "readable_ad_and_skip" -> "节点可读：读到广告与跳过特征"
+            "readable_ad_label" -> "节点可读：读到广告特征"
+            "readable_skip_label" -> "节点可读：读到跳过特征"
+            "readable_features_absent" -> "节点可读：未读到广告/跳过特征"
+            else -> "节点读取状态无法判定"
+        }
+        val ruleLabel = when (rule) {
+            "rule_matched" -> "规则命中（仅诊断）"
+            "no_match" -> "未命中规则"
+            "no_rules" -> "尚无可用规则"
+            "rules_unavailable" -> "规则包不可用"
+            "opaque_skipped" -> "规则匹配因窗口不透明而跳过"
+            else -> "规则状态未知"
+        }
+        return "微博：$accessLabel · $ruleLabel"
+    }
+    return when (result) {
     "rule_matched" -> "规则命中（仅诊断，不执行动作）"
     "no_match" -> "窗口已采集 · 未命中规则"
     "no_rules" -> "窗口已采集 · 尚无可用规则"
@@ -253,6 +276,7 @@ private fun diagnosticLabel(result: String): String = when (result) {
     "package_mismatch" -> "窗口应用包名不一致，已跳过"
     "collection_error" -> "采集过程异常"
     else -> if (result.startsWith("collected_only")) "窗口采集完成（非广告识别）" else "其他诊断事件"
+    }
 }
 
 @Composable private fun InspectionScreen(selected: String, onSelect: (String) -> Unit, statuses: Map<String, CheckStatus>, onStatus: (String, CheckStatus) -> Unit) {
@@ -310,7 +334,7 @@ private fun diagnosticLabel(result: String): String = when (result) {
                     Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                when (item.result) { "captured" -> "窗口已采集"; "opaque_skipped" -> "疑似自绘窗口，已跳过"; "rule_matched" -> "规则命中（仅诊断）"; "no_match" -> "窗口已采集 · 未命中规则"; "no_rules" -> "窗口已采集 · 尚无规则"; "rules_unavailable" -> "规则包不可用"; else -> "诊断事件" },
+                                diagnosticLabel(item.result),
                                 color = Ink, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f)
                             )
                             Text(dateFormat.format(java.util.Date(item.occurredAt)), color = Muted, style = MaterialTheme.typography.labelSmall)
@@ -352,3 +376,4 @@ private fun readAccessState(context: android.content.Context): AccessState {
     val isEnabled = enabled.split(':').any { it.equals(expected, ignoreCase = true) }
     return when { !isEnabled -> AccessState.NOT_ENABLED; AdAccessibilityService.connected -> AccessState.AVAILABLE; else -> AccessState.RECYCLED }
 }
+

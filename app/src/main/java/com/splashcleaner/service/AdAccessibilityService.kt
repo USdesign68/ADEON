@@ -6,6 +6,7 @@ import com.splashcleaner.data.LocalDatabase
 import com.splashcleaner.domain.AdRule
 import com.splashcleaner.domain.RuleEngine
 import com.splashcleaner.domain.SafetyGate
+import com.splashcleaner.domain.weiboDiagnosticOutcome
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -73,8 +74,10 @@ class AdAccessibilityService : AccessibilityService() {
             val captureStartedAt = System.currentTimeMillis()
             // AccessibilityEvent.className is the event source view class, not a reliable Activity name.
             // Keep it unknown: activity-specific rules must not match on guessed metadata.
-            val snapshot = collector.collect(root, pkg, null, launchStartedAt,
-                metrics.widthPixels, metrics.heightPixels)
+            val isWeibo = pkg == WEIBO_PACKAGE
+            val capture = collector.collect(root, pkg, null, launchStartedAt,
+                metrics.widthPixels, metrics.heightPixels, probeAdFeatures = isWeibo)
+            val snapshot = capture.snapshot
 
             // Match only in memory. Neither node text nor selector values are persisted.
             val matchedRule = if (snapshot.opaque || activeRules.isEmpty()) null else
@@ -82,14 +85,15 @@ class AdAccessibilityService : AccessibilityService() {
                     .filter { it.packageName == pkg || it.packageName == "*" }
                     .firstOrNull { ruleEngine.candidates(it, snapshot, metrics.density).isNotEmpty() }
 
-            val result = when {
+            val ruleOutcome = when {
                 snapshot.opaque -> "opaque_skipped"
                 !rulePackageAvailable -> "rules_unavailable"
                 activeRules.isEmpty() -> "no_rules"
                 matchedRule != null -> "rule_matched"
                 else -> "no_match"
             }
-            val diagnosticRuleId = matchedRule?.id ?: when (result) {
+            val result = if (isWeibo) weiboDiagnosticOutcome(capture.featureDiagnostic, ruleOutcome) else ruleOutcome
+            val diagnosticRuleId = matchedRule?.id ?: when (ruleOutcome) {
                 "opaque_skipped" -> "_opaque"
                 "rules_unavailable" -> "_rules_unavailable"
                 "no_rules" -> "_no_rules"
@@ -132,9 +136,11 @@ class AdAccessibilityService : AccessibilityService() {
 
     companion object {
         private const val LOCAL_RULE_ASSET = "rules/stable.json5"
+        private const val WEIBO_PACKAGE = "com.sina.weibo"
         private const val DIAGNOSTIC_INTERVAL_MS = 3_000L
         private const val DIAGNOSTIC_RETENTION_MS = 7L * 24 * 60 * 60 * 1000
         @Volatile var connected: Boolean = false
             private set
     }
 }
+

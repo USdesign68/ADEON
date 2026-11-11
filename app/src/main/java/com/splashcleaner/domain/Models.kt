@@ -7,6 +7,27 @@ enum class RuleState { active, deprecated, removed }
 enum class CheckStatus { PASS, ISSUE, NOT_VERIFIED }
 enum class Severity(val penalty: Int) { SERIOUS(15), HIGH(6), MEDIUM(2) }
 
+/** Ephemeral accessibility text-read summary. Contains no node text or identifiers. */
+data class AccessibilityFeatureDiagnostic(
+    val attemptedNodes: Int,
+    val successfulReads: Int,
+    val failedReads: Int,
+    val adLabelFound: Boolean,
+    val skipLabelFound: Boolean
+) {
+    fun result(): String = when {
+        attemptedNodes == 0 || successfulReads == 0 -> "readability_indeterminate"
+        adLabelFound && skipLabelFound -> "readable_ad_and_skip"
+        adLabelFound -> "readable_ad_label"
+        skipLabelFound -> "readable_skip_label"
+        else -> "readable_features_absent"
+    }
+}
+
+/** Store one coarse state for Weibo feature access and local rule evaluation. */
+fun weiboDiagnosticOutcome(features: AccessibilityFeatureDiagnostic, ruleOutcome: String): String =
+    "weibo_${features.result()}_$ruleOutcome"
+
 data class NodeSnapshot(
     val index: Int,
     val parentIndex: Int?,
@@ -100,3 +121,4 @@ data class InspectionScore(val score: Int, val grade: String, val serious: Int, 
         }
     }
 }
+
